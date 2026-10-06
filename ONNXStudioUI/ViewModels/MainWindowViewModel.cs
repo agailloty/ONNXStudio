@@ -79,6 +79,14 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             : null;
     }
 
+    /// <summary>
+    /// Sets the current screen directly (used by the model load coordinator).
+    /// </summary>
+    public void SetCurrentScreen(ViewModelBase viewModel)
+    {
+        CurrentViewModel = viewModel;
+    }
+
     // ----- model registry projection -----
 
     private void OnModelAdded(object? sender, OnnxModel model)

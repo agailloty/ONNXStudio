@@ -44,7 +44,7 @@ public sealed class FilePickerService : IFilePickerService
         var result = await provider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
             Title = "Open ONNX model",
-            AllowMultiple = false,
+            AllowMultiple = true,
             FileTypeFilter = new[]
             {
                 new FilePickerFileType("ONNX model") { Patterns = new[] { "*.onnx" } }
@@ -53,6 +53,8 @@ public sealed class FilePickerService : IFilePickerService
 
         return result.Count == 0
             ? Array.Empty<string>()
-            : new[] { result[0].TryGetLocalPath() ?? result[0].Path.AbsolutePath };
+            : result
+                .Select(f => f.TryGetLocalPath() ?? f.Path.AbsolutePath)
+                .ToArray();
     }
 }

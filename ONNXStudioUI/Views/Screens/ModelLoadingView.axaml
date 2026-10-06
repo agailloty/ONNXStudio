@@ -30,6 +30,12 @@
                    HorizontalAlignment="Center"
                    IsVisible="{Binding !HasError}"/>
 
+        <Button Classes="secondary"
+                Content="Cancel"
+                Command="{Binding CancelCommand}"
+                HorizontalAlignment="Center"
+                IsVisible="{Binding !HasError}"/>
+
         <Border IsVisible="{Binding HasError}"
                 Background="{DynamicResource SurfaceElevatedBrush}"
                 BorderBrush="{DynamicResource ErrorBrush}"
@@ -43,6 +49,10 @@
                 <TextBlock Text="{Binding ErrorMessage}"
                            Classes="body"
                            TextWrapping="Wrap"/>
+                <Button Classes="secondary"
+                        Content="Back"
+                        Command="{Binding CancelCommand}"
+                        HorizontalAlignment="Right"/>
             </StackPanel>
         </Border>
     </StackPanel>

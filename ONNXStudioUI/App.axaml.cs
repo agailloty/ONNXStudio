@@ -17,6 +17,11 @@ public partial class App : Application
     /// </summary>
     public static IServiceProvider Services { get; private set; } = null!;
 
+    /// <summary>
+    /// Raw command line arguments (set by Program.Main before Avalonia starts).
+    /// </summary>
+    public static string[] CommandLineArgs { get; set; } = Array.Empty<string>();
+
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
@@ -42,9 +47,30 @@ public partial class App : Application
                     provider.Dispose();
                 }
             };
+
+            // CLI support: ONNXStudioUI --model path/to/model.onnx
+            var modelPath = GetModelArgument();
+            if (modelPath != null)
+            {
+                var coordinator = Services.GetRequiredService<ViewModels.IModelLoadCoordinator>();
+                _ = coordinator.LoadAsync(modelPath);
+            }
         }
 
         base.OnFrameworkInitializationCompleted();
+    }
+
+    private static string? GetModelArgument()
+    {
+        var args = CommandLineArgs;
+        for (int i = 0; i < args.Length - 1; i++)
+        {
+            if (string.Equals(args[i], "--model", StringComparison.OrdinalIgnoreCase))
+            {
+                return args[i + 1];
+            }
+        }
+        return args.FirstOrDefault(a => a.EndsWith(".onnx", StringComparison.OrdinalIgnoreCase));
     }
 
     private static ServiceProvider BuildServices()
@@ -63,6 +89,7 @@ public partial class App : Application
 
         // View models
         services.AddSingleton<MainWindowViewModel>();
+        services.AddSingleton<ViewModels.IModelLoadCoordinator, ViewModels.ModelLoadCoordinator>();
         services.AddTransient<ViewModels.Screens.WelcomeViewModel>();
         services.AddTransient<ViewModels.Screens.DashboardViewModel>();
 

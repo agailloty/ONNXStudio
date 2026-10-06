@@ -1,37 +1,28 @@
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using ONNXStudio.Core.Models;
 using ONNXStudio.Core.Services;
 using ONNXStudioUI.Services;
 
 namespace ONNXStudioUI.ViewModels.Screens;
 
 /// <summary>
-/// Empty-state welcome screen (S-01): encourages loading a first model.
+/// Empty-state welcome screen (S-01): open a model via the file picker or
+/// drag-and-drop. Loading itself is handled by the ModelLoadCoordinator.
 /// </summary>
 public partial class WelcomeViewModel : ViewModelBase
 {
-    private readonly MainWindowViewModel _shell;
-    private readonly IModelLoader _loader;
-    private readonly IModelRegistry _registry;
-    private readonly IToastService _toast;
+    private readonly IModelLoadCoordinator _loadCoordinator;
     private readonly IFilePickerService _filePicker;
 
     [ObservableProperty]
     private string? _statusMessage;
 
     public WelcomeViewModel(
-        MainWindowViewModel shell,
-        IModelLoader loader,
-        IModelRegistry registry,
-        IToastService toast,
+        IModelLoadCoordinator loadCoordinator,
         IFilePickerService filePicker)
     {
-        _shell = shell;
-        _loader = loader;
-        _registry = registry;
-        _toast = toast;
+        _loadCoordinator = loadCoordinator;
         _filePicker = filePicker;
         Title = "Welcome";
         StatusMessage = "Drop an .onnx file or click Open Model";
@@ -44,15 +35,13 @@ public partial class WelcomeViewModel : ViewModelBase
         StatusMessage = "Opening file picker...";
         try
         {
-            var path = await _filePicker.PickModelFileAsync().ConfigureAwait(true);
-            if (path == null)
+            var paths = await _filePicker.PickModelFilesAsync().ConfigureAwait(true);
+            if (paths.Length == 0)
             {
                 StatusMessage = "No model selected";
                 return;
             }
-
-            StatusMessage = $"Loading '{path}'...";
-            await LoadModelAsync(path).ConfigureAwait(true);
+            await _loadCoordinator.LoadManyAsync(paths).ConfigureAwait(true);
         }
         finally
         {
@@ -60,21 +49,18 @@ public partial class WelcomeViewModel : ViewModelBase
         }
     }
 
-    public async Task LoadModelAsync(string path)
+    /// <summary>Called by the drag-and-drop handler of the view.</summary>
+    [RelayCommand]
+    private async Task DropModelAsync(string filePath)
     {
-        var result = await _loader.LoadAsync(path).ConfigureAwait(true);
-        if (result.IsSuccess)
+        IsBusy = true;
+        try
         {
-            _registry.Register(result.Value!);
-            _toast.Show($"Model '{result.Value!.Name}' loaded");
-            StatusMessage = $"Model '{result.Value.Name}' loaded";
-            _shell.ShowDashboard();
+            await _loadCoordinator.LoadAsync(filePath).ConfigureAwait(true);
         }
-        else
+        finally
         {
-            var error = result.Error!;
-            _toast.Show(error.Message);
-            StatusMessage = error.Message;
+            IsBusy = false;
         }
     }
 }
