@@ -24,6 +24,12 @@ public sealed class ApiServerHost : IAsyncDisposable
     public int Port { get; private set; }
     public bool IsRunning => _app != null;
 
+    /// <summary>
+    /// Port used on the next start (configurable from the API config screen).
+    /// Defaults to the configured options port when not overridden.
+    /// </summary>
+    public int RequestedPort { get; set; }
+
     public ApiServerHost(
         IModelRegistry registry,
         IInferenceService inferenceService,
@@ -33,6 +39,7 @@ public sealed class ApiServerHost : IAsyncDisposable
         _registry = registry;
         _inferenceService = inferenceService;
         _options = options.Value;
+        RequestedPort = _options.Api.Port;
         _logger = logger;
     }
 
@@ -49,7 +56,7 @@ public sealed class ApiServerHost : IAsyncDisposable
         var builder = WebApplication.CreateSlimBuilder();
 
         // Bind Kestrel via configuration and DI (ConfigureWebHostBuilder has no UseUrls)
-        builder.Configuration["urls"] = $"http://localhost:{_options.Api.Port}";
+        builder.Configuration["urls"] = $"http://localhost:{RequestedPort}";
         builder.Services.Configure<Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServerOptions>(kestrel =>
         {
             kestrel.Limits.MaxRequestBodySize = (long)_options.Api.MaxRequestSizeMB * 1024 * 1024;

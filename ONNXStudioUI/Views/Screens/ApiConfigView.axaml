@@ -1,0 +1,134 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:ONNXStudioUI.ViewModels.Screens"
+             xmlns:models="using:ONNXStudio.Core.Models"
+             mc:Ignorable="d"
+             x:Class="ONNXStudioUI.Views.Screens.ApiConfigView"
+             x:DataType="vm:ApiConfigViewModel">
+
+    <DockPanel>
+        <!-- Toolbar -->
+        <Border DockPanel.Dock="Top"
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,0,0,1"
+                Padding="16,12">
+            <Grid ColumnDefinitions="Auto,Auto,1*,Auto">
+                <Button Grid.Column="0" Classes="secondary" Command="{Binding BackCommand}">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <PathIcon Data="{StaticResource IconChevronLeft}" Width="14" Height="14"/>
+                        <TextBlock Text="Back"/>
+                    </StackPanel>
+                </Button>
+                <TextBlock Grid.Column="1"
+                           Text="{Binding Model.Name}"
+                           Classes="h2"
+                           VerticalAlignment="Center"
+                           Margin="16,0,0,0"/>
+                <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="4">
+                    <Button Content="Inspect"
+                            Classes="secondary"
+                            Command="{Binding SwitchToInspectorCommand}"/>
+                    <Button Content="Inference"
+                            Classes="secondary"
+                            Command="{Binding SwitchToInferenceCommand}"/>
+                    <Button Content="API" Classes="tab-active"/>
+                    <Button Content="Sandbox"
+                            Classes="primary"
+                            Command="{Binding SwitchToSandboxCommand}"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <ScrollViewer>
+            <StackPanel Margin="16" Spacing="12" MaxWidth="900">
+
+                <!-- Server control -->
+                <GroupBox Header="Embedded API server">
+                    <StackPanel Spacing="12">
+                        <Grid ColumnDefinitions="140,140,1*,Auto,Auto">
+                            <TextBlock Grid.Column="0" Text="Port:" Classes="body" VerticalAlignment="Center"/>
+                            <TextBox Grid.Column="1"
+                                     Text="{Binding Port, Mode=TwoWay}"
+                                     Width="120"
+                                     HorizontalAlignment="Left"/>
+                            <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center" Spacing="8">
+                                <Ellipse Width="10" Height="10"
+                                         Fill="{DynamicResource SuccessBrush}"
+                                         IsVisible="{Binding IsServerRunning}"/>
+                                <Ellipse Width="10" Height="10"
+                                         Fill="{DynamicResource TextTertiaryBrush}"
+                                         IsVisible="{Binding !IsServerRunning}"/>
+                                <TextBlock Text="Running" Classes="body-small" IsVisible="{Binding IsServerRunning}"/>
+                                <TextBlock Text="Stopped" Classes="body-small" IsVisible="{Binding !IsServerRunning}"/>
+                            </StackPanel>
+                            <Button Grid.Column="3"
+                                    Classes="danger"
+                                    Command="{Binding ToggleServerCommand}"
+                                    IsVisible="{Binding IsServerRunning}">
+                                <TextBlock Text="Stop server"/>
+                            </Button>
+                            <Button Grid.Column="3"
+                                    Classes="primary"
+                                    Command="{Binding ToggleServerCommand}"
+                                    IsVisible="{Binding !IsServerRunning}">
+                                <TextBlock Text="Start server"/>
+                            </Button>
+                        </Grid>
+                        <TextBlock Classes="body-small"
+                                   Text="Starts a Kestrel server inside the app (modular monolith: same process as the UI). The predict endpoint below becomes available for external clients."/>
+                    </StackPanel>
+                </GroupBox>
+
+                <!-- Endpoint -->
+                <GroupBox Header="Predict endpoint">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="{Binding FullEndpointUrl}" Classes="h4"/>
+                        <ItemsControl ItemsSource="{Binding Model.Inputs}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="models:TensorSchema">
+                                    <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,2">
+                                        <TextBlock Text="{Binding Name}" Classes="code"/>
+                                        <TextBlock Text="{Binding Display}" Classes="body-small"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </GroupBox>
+
+                <!-- Schema -->
+                <GroupBox Header="JSON Schema (generated)">
+                    <TextBox Text="{Binding JsonSchema, Mode=OneWay}"
+                             IsReadOnly="True"
+                             AcceptsReturn="True"
+                             FontFamily="{DynamicResource CodeFontFamily}"
+                             FontSize="12"
+                             MinHeight="240"/>
+                </GroupBox>
+
+                <!-- Example payload -->
+                <GroupBox Header="Example payload">
+                    <TextBox Text="{Binding ExamplePayload, Mode=OneWay}"
+                             IsReadOnly="True"
+                             AcceptsReturn="True"
+                             FontFamily="{DynamicResource CodeFontFamily}"
+                             FontSize="12"
+                             MinHeight="120"/>
+                </GroupBox>
+
+                <!-- cURL -->
+                <GroupBox Header="cURL preview">
+                    <TextBox Text="{Binding CurlPreview, Mode=OneWay}"
+                             IsReadOnly="True"
+                             AcceptsReturn="True"
+                             FontFamily="{DynamicResource CodeFontFamily}"
+                             FontSize="12"
+                             MinHeight="80"/>
+                </GroupBox>
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>

@@ -110,10 +110,24 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     }
 
     public void ShowApiConfig(OnnxModel model)
-        => ShowToast("API configuration is coming in the next iteration");
+    {
+        CurrentViewModel = GetOrCreateScreen("apiconfig:" + model.Id,
+            () => new ViewModels.Screens.ApiConfigViewModel(
+                this,
+                _services.GetRequiredService<ONNXStudio.Api.ApiServerHost>(),
+                _services.GetRequiredService<IToastService>(),
+                model));
+    }
 
     public void ShowApiSandbox(OnnxModel model)
-        => ShowToast("API sandbox is coming in the next iteration");
+    {
+        CurrentViewModel = GetOrCreateScreen("sandbox:" + model.Id,
+            () => new ViewModels.Screens.ApiSandboxViewModel(
+                this,
+                _services.GetRequiredService<ONNXStudio.Api.ApiServerHost>(),
+                _services.GetRequiredService<IToastService>(),
+                model));
+    }
 
     private ViewModelBase GetOrCreateScreen(string key, Func<ViewModelBase> factory)
     {
