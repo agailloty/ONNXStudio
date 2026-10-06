@@ -1,0 +1,156 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Palettes switchées automatiquement via Application.RequestedThemeVariant -->
+    <ResourceDictionary.ThemeDictionaries>
+
+        <!-- ================= LIGHT THEME ================= -->
+        <ResourceDictionary x:Key="Light">
+            <!-- Background Colors -->
+            <Color x:Key="BackgroundColor">#F6F8FA</Color>
+            <Color x:Key="SurfaceColor">#FFFFFF</Color>
+            <Color x:Key="SurfaceElevatedColor">#EFF2F5</Color>
+
+            <!-- Primary Colors -->
+            <Color x:Key="PrimaryColor">#0969DA</Color>
+            <Color x:Key="PrimaryHoverColor">#218BFF</Color>
+            <Color x:Key="PrimaryPressedColor">#0757B5</Color>
+
+            <!-- Secondary Colors -->
+            <Color x:Key="SecondaryColor">#57606A</Color>
+            <Color x:Key="SecondaryHoverColor">#6E7781</Color>
+
+            <!-- Status Colors -->
+            <Color x:Key="SuccessColor">#1A7F37</Color>
+            <Color x:Key="SuccessHoverColor">#2DA44E</Color>
+            <Color x:Key="WarningColor">#9A6700</Color>
+            <Color x:Key="ErrorColor">#CF222E</Color>
+            <Color x:Key="ErrorHoverColor">#A40E26</Color>
+
+            <!-- Text Colors -->
+            <Color x:Key="TextPrimaryColor">#1F2328</Color>
+            <Color x:Key="TextSecondaryColor">#57606A</Color>
+            <Color x:Key="TextTertiaryColor">#818B98</Color>
+
+            <!-- Border Colors -->
+            <Color x:Key="BorderColor">#D0D7DE</Color>
+            <Color x:Key="BorderSubtleColor">#EBEDF1</Color>
+
+            <!-- OpType Colors for Graph -->
+            <Color x:Key="ConvColor">#0969DA</Color>
+            <Color x:Key="PoolColor">#1A7F37</Color>
+            <Color x:Key="ActivationColor">#9A6700</Color>
+            <Color x:Key="LinearColor">#8250DF</Color>
+            <Color x:Key="NormalizationColor">#1B7C83</Color>
+            <Color x:Key="OtherColor">#57606A</Color>
+
+            <!-- Node State Colors -->
+            <Color x:Key="NodeSelectedColor">#0969DA</Color>
+            <Color x:Key="NodeHoverColor">#218BFF</Color>
+            <Color x:Key="NodeDefaultColor">#AFB8C1</Color>
+
+            <!-- Brushes -->
+            <SolidColorBrush x:Key="BackgroundBrush" Color="{DynamicResource BackgroundColor}"/>
+            <SolidColorBrush x:Key="SurfaceBrush" Color="{DynamicResource SurfaceColor}"/>
+            <SolidColorBrush x:Key="SurfaceElevatedBrush" Color="{DynamicResource SurfaceElevatedColor}"/>
+            <SolidColorBrush x:Key="PrimaryBrush" Color="{DynamicResource PrimaryColor}"/>
+            <SolidColorBrush x:Key="PrimaryHoverBrush" Color="{DynamicResource PrimaryHoverColor}"/>
+            <SolidColorBrush x:Key="SecondaryBrush" Color="{DynamicResource SecondaryColor}"/>
+            <SolidColorBrush x:Key="SuccessBrush" Color="{DynamicResource SuccessColor}"/>
+            <SolidColorBrush x:Key="WarningBrush" Color="{DynamicResource WarningColor}"/>
+            <SolidColorBrush x:Key="ErrorBrush" Color="{DynamicResource ErrorColor}"/>
+            <SolidColorBrush x:Key="TextPrimaryBrush" Color="{DynamicResource TextPrimaryColor}"/>
+            <SolidColorBrush x:Key="TextSecondaryBrush" Color="{DynamicResource TextSecondaryColor}"/>
+            <SolidColorBrush x:Key="TextTertiaryBrush" Color="{DynamicResource TextTertiaryColor}"/>
+            <SolidColorBrush x:Key="BorderBrush" Color="{DynamicResource BorderColor}"/>
+            <SolidColorBrush x:Key="BorderSubtleBrush" Color="{DynamicResource BorderSubtleColor}"/>
+
+            <!-- Contrast -->
+            <SolidColorBrush x:Key="OnPrimaryBrush" Color="#FFFFFF"/>
+            <SolidColorBrush x:Key="SelectionBrush" Color="#CFE4FF"/>
+
+            <!-- OpType brushes for graph -->
+            <SolidColorBrush x:Key="ConvBrush" Color="{DynamicResource ConvColor}"/>
+            <SolidColorBrush x:Key="PoolBrush" Color="{DynamicResource PoolColor}"/>
+            <SolidColorBrush x:Key="ActivationBrush" Color="{DynamicResource ActivationColor}"/>
+            <SolidColorBrush x:Key="LinearBrush" Color="{DynamicResource LinearColor}"/>
+            <SolidColorBrush x:Key="NormalizationBrush" Color="{DynamicResource NormalizationColor}"/>
+            <SolidColorBrush x:Key="OtherBrush" Color="{DynamicResource OtherColor}"/>
+        </ResourceDictionary>
+
+        <!-- ================= DARK THEME ================= -->
+        <ResourceDictionary x:Key="Dark">
+            <!-- Background Colors -->
+            <Color x:Key="BackgroundColor">#0E1117</Color>
+            <Color x:Key="SurfaceColor">#161B22</Color>
+            <Color x:Key="SurfaceElevatedColor">#21262D</Color>
+
+            <!-- Primary Colors -->
+            <Color x:Key="PrimaryColor">#58A6FF</Color>
+            <Color x:Key="PrimaryHoverColor">#79C0FF</Color>
+            <Color x:Key="PrimaryPressedColor">#3A8BD8</Color>
+
+            <!-- Secondary Colors -->
+            <Color x:Key="SecondaryColor">#8B949E</Color>
+            <Color x:Key="SecondaryHoverColor">#A3ADBA</Color>
+
+            <!-- Status Colors -->
+            <Color x:Key="SuccessColor">#3FB950</Color>
+            <Color x:Key="SuccessHoverColor">#56D364</Color>
+            <Color x:Key="WarningColor">#F8E454</Color>
+            <Color x:Key="ErrorColor">#F85149</Color>
+            <Color x:Key="ErrorHoverColor">#FF7B72</Color>
+
+            <!-- Text Colors -->
+            <Color x:Key="TextPrimaryColor">#F0F6FC</Color>
+            <Color x:Key="TextSecondaryColor">#8B949E</Color>
+            <Color x:Key="TextTertiaryColor">#6E7681</Color>
+
+            <!-- Border Colors -->
+            <Color x:Key="BorderColor">#30363D</Color>
+            <Color x:Key="BorderSubtleColor">#21262D</Color>
+
+            <!-- OpType Colors for Graph -->
+            <Color x:Key="ConvColor">#58A6FF</Color>
+            <Color x:Key="PoolColor">#3FB950</Color>
+            <Color x:Key="ActivationColor">#F8E454</Color>
+            <Color x:Key="LinearColor">#A371F7</Color>
+            <Color x:Key="NormalizationColor">#56D3D1</Color>
+            <Color x:Key="OtherColor">#8B949E</Color>
+
+            <!-- Node State Colors -->
+            <Color x:Key="NodeSelectedColor">#58A6FF</Color>
+            <Color x:Key="NodeHoverColor">#79C0FF</Color>
+            <Color x:Key="NodeDefaultColor">#484F58</Color>
+
+            <!-- Brushes -->
+            <SolidColorBrush x:Key="BackgroundBrush" Color="{DynamicResource BackgroundColor}"/>
+            <SolidColorBrush x:Key="SurfaceBrush" Color="{DynamicResource SurfaceColor}"/>
+            <SolidColorBrush x:Key="SurfaceElevatedBrush" Color="{DynamicResource SurfaceElevatedColor}"/>
+            <SolidColorBrush x:Key="PrimaryBrush" Color="{DynamicResource PrimaryColor}"/>
+            <SolidColorBrush x:Key="PrimaryHoverBrush" Color="{DynamicResource PrimaryHoverColor}"/>
+            <SolidColorBrush x:Key="SecondaryBrush" Color="{DynamicResource SecondaryColor}"/>
+            <SolidColorBrush x:Key="SuccessBrush" Color="{DynamicResource SuccessColor}"/>
+            <SolidColorBrush x:Key="WarningBrush" Color="{DynamicResource WarningColor}"/>
+            <SolidColorBrush x:Key="ErrorBrush" Color="{DynamicResource ErrorColor}"/>
+            <SolidColorBrush x:Key="TextPrimaryBrush" Color="{DynamicResource TextPrimaryColor}"/>
+            <SolidColorBrush x:Key="TextSecondaryBrush" Color="{DynamicResource TextSecondaryColor}"/>
+            <SolidColorBrush x:Key="TextTertiaryBrush" Color="{DynamicResource TextTertiaryColor}"/>
+            <SolidColorBrush x:Key="BorderBrush" Color="{DynamicResource BorderColor}"/>
+            <SolidColorBrush x:Key="BorderSubtleBrush" Color="{DynamicResource BorderSubtleColor}"/>
+
+            <!-- Contrast -->
+            <SolidColorBrush x:Key="OnPrimaryBrush" Color="#0E1117"/>
+            <SolidColorBrush x:Key="SelectionBrush" Color="#1A3A5C"/>
+
+            <!-- OpType brushes for graph -->
+            <SolidColorBrush x:Key="ConvBrush" Color="{DynamicResource ConvColor}"/>
+            <SolidColorBrush x:Key="PoolBrush" Color="{DynamicResource PoolColor}"/>
+            <SolidColorBrush x:Key="ActivationBrush" Color="{DynamicResource ActivationColor}"/>
+            <SolidColorBrush x:Key="LinearBrush" Color="{DynamicResource LinearColor}"/>
+            <SolidColorBrush x:Key="NormalizationBrush" Color="{DynamicResource NormalizationColor}"/>
+            <SolidColorBrush x:Key="OtherBrush" Color="{DynamicResource OtherColor}"/>
+        </ResourceDictionary>
+
+    </ResourceDictionary.ThemeDictionaries>
+</ResourceDictionary>

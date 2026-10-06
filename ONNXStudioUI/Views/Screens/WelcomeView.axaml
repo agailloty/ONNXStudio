@@ -1,0 +1,64 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:ONNXStudioUI.ViewModels.Screens"
+             xmlns:controls="using:ONNXStudioUI.Controls"
+             mc:Ignorable="d"
+             x:Class="ONNXStudioUI.Views.Screens.WelcomeView"
+             x:DataType="vm:WelcomeViewModel">
+
+    <ScrollViewer>
+        <StackPanel VerticalAlignment="Center"
+                    HorizontalAlignment="Center"
+                    MaxWidth="520"
+                    Margin="48"
+                    Spacing="16">
+
+            <StackPanel HorizontalAlignment="Center" Spacing="8">
+                <TextBlock Text="ONNX Studio"
+                           Classes="h1"
+                           Foreground="{DynamicResource PrimaryBrush}"
+                           HorizontalAlignment="Center"/>
+                <TextBlock Text="Inspect, run and serve your ONNX models"
+                           Classes="body-secondary"
+                           HorizontalAlignment="Center"/>
+            </StackPanel>
+
+            <!-- Drop zone illustration -->
+            <Border Background="{DynamicResource SurfaceBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}"
+                    BorderThickness="2"
+                    CornerRadius="12"
+                    Padding="40"
+                    x:Name="DropZone">
+                <StackPanel Spacing="12">
+                    <PathIcon Data="{StaticResource IconUpload}"
+                              Width="48" Height="48"
+                              Foreground="{DynamicResource PrimaryBrush}"
+                              HorizontalAlignment="Center"/>
+                    <TextBlock Text="Drop your .onnx file here"
+                               Classes="body-secondary"
+                               HorizontalAlignment="Center"/>
+                </StackPanel>
+            </Border>
+
+            <Button Classes="primary large"
+                    Command="{Binding OpenModelCommand}"
+                    IsEnabled="{Binding IsBusy, Converter={StaticResource InverseBoolConverter}}"
+                    HorizontalAlignment="Center">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <PathIcon Data="{StaticResource IconPlus}" Width="14" Height="14"/>
+                    <TextBlock Text="Open Model"/>
+                </StackPanel>
+            </Button>
+
+            <controls:Spinner IsVisible="{Binding IsBusy}"
+                              HorizontalAlignment="Center"/>
+
+            <TextBlock Text="{Binding StatusMessage}"
+                       Classes="body-small"
+                       HorizontalAlignment="Center"/>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

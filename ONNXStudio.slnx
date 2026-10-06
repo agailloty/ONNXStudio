@@ -4,4 +4,5 @@
   </Folder>
   <Project Path="ONNXStudio.Api/ONNXStudio.Api.csproj" />
   <Project Path="ONNXStudio.Core/ONNXStudio.Core.csproj" />
+  <Project Path="ONNXStudioUI/ONNXStudioUI.csproj" />
 </Solution>

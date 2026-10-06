@@ -1,0 +1,49 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:ONNXStudioUI.ViewModels.Screens"
+             xmlns:controls="using:ONNXStudioUI.Controls"
+             mc:Ignorable="d"
+             x:Class="ONNXStudioUI.Views.Screens.ModelLoadingView"
+             x:DataType="vm:ModelLoadingViewModel">
+
+    <StackPanel VerticalAlignment="Center"
+                HorizontalAlignment="Center"
+                Width="480"
+                Spacing="16">
+
+        <controls:Spinner IsVisible="{Binding !HasError}"
+                          HorizontalAlignment="Center"/>
+
+        <TextBlock Text="{Binding ModelName, StringFormat='Loading {0}...'}"
+                   Classes="h2"
+                   HorizontalAlignment="Center"
+                   IsVisible="{Binding !HasError}"/>
+
+        <ProgressBar Value="{Binding ProgressValue}"
+                     Maximum="100"
+                     IsVisible="{Binding !HasError}"/>
+
+        <TextBlock Text="{Binding StatusMessage}"
+                   Classes="body-secondary"
+                   HorizontalAlignment="Center"
+                   IsVisible="{Binding !HasError}"/>
+
+        <Border IsVisible="{Binding HasError}"
+                Background="{DynamicResource SurfaceElevatedBrush}"
+                BorderBrush="{DynamicResource ErrorBrush}"
+                BorderThickness="1"
+                CornerRadius="8"
+                Padding="16">
+            <StackPanel Spacing="8">
+                <TextBlock Text="Error loading model"
+                           Classes="h3"
+                           Foreground="{DynamicResource ErrorBrush}"/>
+                <TextBlock Text="{Binding ErrorMessage}"
+                           Classes="body"
+                           TextWrapping="Wrap"/>
+            </StackPanel>
+        </Border>
+    </StackPanel>
+</UserControl>

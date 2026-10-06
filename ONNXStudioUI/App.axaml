@@ -1,0 +1,33 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="using:ONNXStudioUI"
+             xmlns:cvt="using:ONNXStudioUI.Converters"
+             x:Class="ONNXStudioUI.App"
+             RequestedThemeVariant="Light">
+
+    <Application.Styles>
+        <FluentTheme />
+        <StyleInclude Source="avares://ONNXStudioUI/Resources/Styles.axaml" />
+    </Application.Styles>
+
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://ONNXStudioUI/Resources/Colors.axaml" />
+                <ResourceInclude Source="avares://ONNXStudioUI/Resources/Spacing.axaml" />
+                <ResourceInclude Source="avares://ONNXStudioUI/Resources/Icons.axaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <!-- View template -->
+            <local:ViewLocator x:Key="ViewLocator" />
+
+            <!-- Value converters -->
+            <cvt:NullToBoolConverter x:Key="NullToBoolConverter" />
+            <cvt:InverseBoolConverter x:Key="InverseBoolConverter" />
+            <cvt:StringEqualsConverter x:Key="StringEqualsConverter" />
+            <cvt:CountToBoolConverter x:Key="CountToBoolConverter" />
+            <cvt:StringToBrushConverter x:Key="StringToBrushConverter" />
+            <cvt:DoubleToPercentConverter x:Key="DoubleToPercentConverter" />
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

@@ -1,0 +1,45 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:ONNXStudioUI.ViewModels"
+        xmlns:controls="using:ONNXStudioUI.Controls"
+        mc:Ignorable="d"
+        x:Class="ONNXStudioUI.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Icon="/Assets/avalonia-logo.ico"
+        Title="ONNX Studio"
+        Width="1280" Height="800"
+        MinWidth="1024" MinHeight="640"
+        WindowState="Maximized"
+        WindowStartupLocation="CenterScreen">
+
+    <Grid RowDefinitions="1*,Auto">
+        <!-- Current screen -->
+        <ContentControl Grid.Row="0"
+                        Content="{Binding CurrentViewModel}"
+                        ContentTemplate="{StaticResource ViewLocator}" />
+
+        <!-- Toast overlay -->
+        <Border Grid.Row="0"
+                ZIndex="100"
+                IsHitTestVisible="False"
+                IsVisible="{Binding ToastMessage, Converter={StaticResource NullToBoolConverter}}"
+                Background="{DynamicResource SurfaceElevatedBrush}"
+                BorderBrush="{DynamicResource PrimaryBrush}"
+                BorderThickness="1"
+                CornerRadius="8"
+                Padding="20,10"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Top"
+                Margin="0,16,0,0"
+                BoxShadow="0 4 12 4 #66000000">
+            <TextBlock Text="{Binding ToastMessage}" Classes="body"/>
+        </Border>
+
+        <!-- Status bar -->
+        <controls:StatusBar Grid.Row="1"
+                            Status="{Binding StatusMessage}"
+                            Info="{Binding AppVersion, StringFormat='ONNX Studio v{0}'}"/>
+    </Grid>
+</Window>

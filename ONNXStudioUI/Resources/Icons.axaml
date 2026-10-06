@@ -1,0 +1,15 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Vector icon geometries (Material-style, 24x24) -->
+    <StreamGeometry x:Key="IconChevronLeft">M15.5 4.5 L8 12 L15.5 19.5 L14 21 L5 12 L14 3 Z</StreamGeometry>
+    <StreamGeometry x:Key="IconChevronRight">M8.5 4.5 L16 12 L8.5 19.5 L10 21 L19 12 L10 3 Z</StreamGeometry>
+    <StreamGeometry x:Key="IconSearch">M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5Zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14Z</StreamGeometry>
+    <StreamGeometry x:Key="IconUpload">M9 16h6v-6h4l-7-7-7 7h4v6Zm-4 2h14v2H5v-2Z</StreamGeometry>
+    <StreamGeometry x:Key="IconPlus">M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2Z</StreamGeometry>
+    <StreamGeometry x:Key="IconSettings">M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .14-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.14.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.14.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.14-.61l-2.01-1.58ZM12 15.6A3.61 3.61 0 0 1 8.4 12c0-1.98 1.62-3.6 3.6-3.6s3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6Z</StreamGeometry>
+    <StreamGeometry x:Key="IconPlay">M8 5v14l11-7z</StreamGeometry>
+    <StreamGeometry x:Key="IconSend">M2.01 21 23 12 2.01 3 2 10l15 2-15 2z</StreamGeometry>
+    <StreamGeometry x:Key="IconCopy">M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1Zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Zm0 16H8V7h11v14Z</StreamGeometry>
+    <StreamGeometry x:Key="IconBox">M12 2 2 7v10l10 5 10-5V7L12 2Zm0 2.2 7 3.5-7 3.5-7-3.5 7-3.5ZM4 9.5l7 3.5v6.9l-7-3.5V9.5Zm9 10.4v-6.9l7-3.5v6.9l-7 3.5Z</StreamGeometry>
+</ResourceDictionary>

@@ -1,0 +1,104 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:ONNXStudioUI.ViewModels.Screens"
+             xmlns:models="using:ONNXStudio.Core.Models"
+             xmlns:controls="using:ONNXStudioUI.Controls"
+             mc:Ignorable="d"
+             x:Class="ONNXStudioUI.Views.Screens.DashboardView"
+             x:DataType="vm:DashboardViewModel">
+
+    <DockPanel>
+        <!-- Toolbar -->
+        <Border DockPanel.Dock="Top"
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,0,0,1"
+                Padding="16,12">
+            <Grid ColumnDefinitions="1*,Auto">
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12">
+                    <TextBlock Text="ONNX Studio" Classes="h1" VerticalAlignment="Center"/>
+                    <TextBlock Text="Dashboard" Classes="body-secondary" VerticalAlignment="Center"/>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button Classes="primary"
+                            Command="{Binding RefreshCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <PathIcon Data="{StaticResource IconPlus}" Width="14" Height="14"/>
+                            <TextBlock Text="Refresh"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Search + sort -->
+        <Border DockPanel.Dock="Top" Padding="16,8">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <PathIcon Data="{StaticResource IconSearch}"
+                          Width="16" Height="16"
+                          Foreground="{DynamicResource TextSecondaryBrush}"
+                          VerticalAlignment="Center"/>
+                <TextBox PlaceholderText="Search models..."
+                         Text="{Binding SearchText, Mode=TwoWay}"
+                         MinWidth="320"/>
+                <TextBlock Text="Sort by:" Classes="body-secondary" VerticalAlignment="Center" Margin="12,0,0,0"/>
+                <ComboBox ItemsSource="{Binding SortOptions}"
+                          SelectedItem="{Binding SelectedSort, Mode=TwoWay}"
+                          MinWidth="160"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Models -->
+        <ScrollViewer>
+            <ItemsControl ItemsSource="{Binding FilteredModels}" Margin="16">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="models:OnnxModel">
+                        <controls:Card Width="240" Margin="8">
+                            <StackPanel Spacing="8">
+                                <Border Background="{DynamicResource SurfaceElevatedBrush}"
+                                        BorderBrush="{DynamicResource BorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="6"
+                                        Height="56" Width="56"
+                                        HorizontalAlignment="Center">
+                                    <TextBlock Text="{Binding OpsetVersion, StringFormat='op {0}'}"
+                                               FontFamily="{DynamicResource CodeFontFamily}"
+                                               FontSize="12"
+                                               Foreground="{DynamicResource PrimaryBrush}"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"/>
+                                </Border>
+
+                                <TextBlock Text="{Binding Name}"
+                                           Classes="h3"
+                                           TextTrimming="CharacterEllipsis"
+                                           HorizontalAlignment="Center"/>
+
+                                <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                                    <TextBlock Text="{Binding ProducerName}" Classes="body-small"/>
+                                    <TextBlock Text="&#x00B7;" Classes="body-small"/>
+                                    <TextBlock Text="{Binding FileSizeDisplay}" Classes="body-small"/>
+                                    <TextBlock Text="&#x00B7;" Classes="body-small"/>
+                                    <TextBlock Text="{Binding Graph.Nodes.Count, StringFormat='{}{0} nodes'}" Classes="body-small"/>
+                                </StackPanel>
+
+                                <Button Content="Unload"
+                                        Classes="small danger"
+                                        Command="{Binding $parent[ItemsControl].((vm:DashboardViewModel)DataContext).UnloadModelCommand}"
+                                        CommandParameter="{Binding}"
+                                        HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </controls:Card>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>
