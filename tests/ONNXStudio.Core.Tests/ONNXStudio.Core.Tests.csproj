@@ -14,6 +14,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\ONNXStudio.Core\ONNXStudio.Core.csproj" />
+    <ProjectReference Include="..\..\ONNXStudio.Api\ONNXStudio.Api.csproj" />
   </ItemGroup>
 
   <ItemGroup>
