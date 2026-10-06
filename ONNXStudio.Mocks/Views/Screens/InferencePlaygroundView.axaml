@@ -14,9 +14,13 @@
                 Padding="16,12">
             <Grid ColumnDefinitions="Auto,Auto,1*,Auto,Auto,Auto">
                 <Button Grid.Column="0"
-                        Content="&#x2190; Back"
                         Classes="secondary"
-                        Command="{Binding BackCommand}" />
+                        Command="{Binding BackCommand}">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <PathIcon Data="{StaticResource IconChevronLeft}" Width="14" Height="14"/>
+                        <TextBlock Text="Back"/>
+                    </StackPanel>
+                </Button>
                 <TextBlock Grid.Column="1"
                            Text="{Binding Model.Name}"
                            Classes="h2"
@@ -73,13 +77,18 @@
                                                     CornerRadius="6"
                                                     Height="120"
                                                     Padding="16">
-                                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="4">
-                                                    <TextBlock Text="&#x1F4F7;"
-                                                               FontSize="36"
-                                                               HorizontalAlignment="Center" />
-                                                    <Button Content="Upload Image"
-                                                            Classes="secondary small"
-                                                            HorizontalAlignment="Center" />
+                                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8">
+                                                    <PathIcon Data="{StaticResource IconUpload}"
+                                                              Width="24"
+                                                              Height="24"
+                                                              Foreground="{DynamicResource PrimaryBrush}"
+                                                              HorizontalAlignment="Center"/>
+                                                    <Button Classes="secondary small"
+                                                            HorizontalAlignment="Center">
+                                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                                            <TextBlock Text="Upload Image"/>
+                                                        </StackPanel>
+                                                    </Button>
                                                     <TextBlock Text="Current: none"
                                                                Classes="body-small"
                                                                HorizontalAlignment="Center" />
@@ -146,11 +155,15 @@
                     </ItemsControl>
 
                     <!-- Run Button -->
-                    <Button Content="{Binding RunButtonText}"
-                            Classes="primary large"
+                    <Button Classes="primary large"
                             Command="{Binding RunInferenceCommand}"
                             IsEnabled="{Binding IsRunning, Converter={StaticResource BoolToInverseConverter}}"
-                            HorizontalAlignment="Right" />
+                            HorizontalAlignment="Right">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <PathIcon Data="{StaticResource IconPlay}" Width="14" Height="14"/>
+                            <TextBlock Text="{Binding RunButtonText}"/>
+                        </StackPanel>
+                    </Button>
                 </StackPanel>
             </GroupBox>
 

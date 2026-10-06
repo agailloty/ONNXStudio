@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -13,12 +14,21 @@ public partial class DashboardViewModel : ViewModelBase
     
     [ObservableProperty]
     private string _searchText = string.Empty;
-    
+
+    [ObservableProperty]
+    private string _selectedSort = "Recently loaded";
+
     [ObservableProperty]
     private ObservableCollection<OnnxModel> _filteredModels = new();
-    
+
     [ObservableProperty]
     private bool _isSelectAll = false;
+
+    public List<string> SortOptions { get; } = new() { "Recently loaded", "Name", "Size" };
+
+    partial void OnSearchTextChanged(string value) => UpdateFilteredModels();
+
+    partial void OnSelectedSortChanged(string value) => UpdateFilteredModels();
     
     public DashboardViewModel(MainViewModel mainViewModel)
     {
@@ -34,18 +44,25 @@ public partial class DashboardViewModel : ViewModelBase
     
     private void UpdateFilteredModels()
     {
-        if (string.IsNullOrWhiteSpace(SearchText))
+        IEnumerable<OnnxModel> models = _mainViewModel.Models;
+
+        // Live filter on name / filename
+        if (!string.IsNullOrWhiteSpace(SearchText))
         {
-            FilteredModels = new ObservableCollection<OnnxModel>(_mainViewModel.Models);
+            models = models.Where(m =>
+                m.Name.Contains(SearchText, StringComparison.OrdinalIgnoreCase) ||
+                m.FileName.Contains(SearchText, StringComparison.OrdinalIgnoreCase));
         }
-        else
+
+        // Sort
+        models = SelectedSort switch
         {
-            FilteredModels = new ObservableCollection<OnnxModel>(
-                _mainViewModel.Models.Where(m => 
-                    m.Name.Contains(SearchText, StringComparison.OrdinalIgnoreCase) ||
-                    m.FileName.Contains(SearchText, StringComparison.OrdinalIgnoreCase))
-            );
-        }
+            "Name" => models.OrderBy(m => m.Name, StringComparer.OrdinalIgnoreCase),
+            "Size" => models.OrderByDescending(m => m.FileSize),
+            _ => models.OrderByDescending(m => m.LoadedAt)
+        };
+
+        FilteredModels = new ObservableCollection<OnnxModel>(models);
     }
     
     [RelayCommand]

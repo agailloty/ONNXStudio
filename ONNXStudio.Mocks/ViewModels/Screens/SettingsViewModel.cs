@@ -92,6 +92,7 @@ public partial class SettingsViewModel : ViewModelBase
         _settings.CacheSize = CacheSize;
         
         StatusMessage = "Settings saved successfully";
+        _mainViewModel.ShowToast("Settings saved");
     }
     
     [RelayCommand]

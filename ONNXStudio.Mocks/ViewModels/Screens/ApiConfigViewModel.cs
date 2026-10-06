@@ -146,6 +146,7 @@ public partial class ApiConfigViewModel : ViewModelBase
         _mainViewModel.SaveSettings();
         StatusMessage = "Endpoint configuration saved - serving " + EndpointPath
                         + " on port " + ApiPort;
+        _mainViewModel.ShowToast("Endpoint " + EndpointPath + " saved (port " + ApiPort + ")");
     }
 
     partial void OnEndpointPathChanged(string value) => RegeneratePreviews();

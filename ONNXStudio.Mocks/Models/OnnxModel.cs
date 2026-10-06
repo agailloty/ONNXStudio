@@ -57,12 +57,13 @@ public class OnnxModel
     {
         return Type switch
         {
-            ModelType.CNN => "🖼️",
-            ModelType.RNN or ModelType.LSTM => "📜",
-            ModelType.Transformer => "🤖",
-            ModelType.Classifier => "🏷️",
-            ModelType.Detector => "🔍",
-            _ => "📦"
+            ModelType.CNN => "CNN",
+            ModelType.RNN or ModelType.LSTM => "RNN",
+            ModelType.Transformer => "TRF",
+            ModelType.Classifier => "CLS",
+            ModelType.Detector => "DET",
+            ModelType.Segmenter => "SEG",
+            _ => "NN"
         };
     }
     

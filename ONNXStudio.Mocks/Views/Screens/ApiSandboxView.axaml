@@ -29,9 +29,13 @@
                 Padding="16,12">
             <Grid ColumnDefinitions="Auto,Auto,1*,Auto,Auto,Auto">
                 <Button Grid.Column="0"
-                        Content="&#x2190; Back"
                         Classes="secondary"
-                        Command="{Binding BackCommand}" />
+                        Command="{Binding BackCommand}">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <PathIcon Data="{StaticResource IconChevronLeft}" Width="14" Height="14"/>
+                        <TextBlock Text="Back"/>
+                    </StackPanel>
+                </Button>
                 <TextBlock Grid.Column="1"
                            Text="{Binding ModelName}"
                            Classes="h2"
@@ -110,11 +114,15 @@
                                      MinHeight="120" />
                         </GroupBox>
 
-                        <Button Content="Send Request"
-                                Classes="primary"
+                        <Button Classes="primary"
                                 Command="{Binding SendRequestCommand}"
                                 IsEnabled="{Binding IsRequesting, Converter={StaticResource BoolToInverseConverter}}"
-                                HorizontalAlignment="Right" />
+                                HorizontalAlignment="Right">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <PathIcon Data="{StaticResource IconSend}" Width="14" Height="14"/>
+                                <TextBlock Text="Send Request"/>
+                            </StackPanel>
+                        </Button>
                     </StackPanel>
                 </Border>
 

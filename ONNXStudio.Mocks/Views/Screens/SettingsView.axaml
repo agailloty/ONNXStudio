@@ -14,9 +14,13 @@
                 Padding="16,12">
             <Grid ColumnDefinitions="Auto,1*,Auto">
                 <Button Grid.Column="0"
-                        Content="&#x2190; Back"
                         Classes="secondary"
-                        Command="{Binding BackCommand}" />
+                        Command="{Binding BackCommand}">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <PathIcon Data="{StaticResource IconChevronLeft}" Width="14" Height="14"/>
+                        <TextBlock Text="Back"/>
+                    </StackPanel>
+                </Button>
                 <TextBlock Grid.Column="1"
                            Text="Settings"
                            Classes="h2"

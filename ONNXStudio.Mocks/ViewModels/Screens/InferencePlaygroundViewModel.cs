@@ -66,7 +66,7 @@ public partial class InferencePlaygroundViewModel : ViewModelBase
         if (IsRunning) return;
         
         IsRunning = true;
-        RunButtonText = "Running...⠋";
+        RunButtonText = "Running...";
         StatusMessage = "Running inference...";
         Result = null;
         
@@ -76,6 +76,7 @@ public partial class InferencePlaygroundViewModel : ViewModelBase
         // Create mock result
         Result = MockDataGenerator.CreateMockInferenceResult(_model, Inputs.ToList());
         StatusMessage = "Inference completed in " + Result.ExecutionTimeMs + "ms";
+        _mainViewModel.ShowToast("Inference completed in " + Result.ExecutionTimeMs + "ms");
         
         IsRunning = false;
         RunButtonText = "Run Inference";
@@ -87,15 +88,17 @@ public partial class InferencePlaygroundViewModel : ViewModelBase
         if (Result != null)
         {
             StatusMessage = "Results copied to clipboard";
+            _mainViewModel.ShowToast("Results copied to clipboard");
         }
     }
-    
+
     [RelayCommand]
     private void SaveResults()
     {
         if (Result != null)
         {
             StatusMessage = "Results saved to file";
+            _mainViewModel.ShowToast("Results saved to results.json");
         }
     }
     

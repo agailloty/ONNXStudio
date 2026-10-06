@@ -122,6 +122,7 @@ public partial class ApiSandboxViewModel : ViewModelBase
         }
         
         StatusMessage = "Request completed in " + executionTime + "ms";
+        _mainViewModel.ShowToast("Request completed in " + executionTime + "ms");
         IsRequesting = false;
     }
     
@@ -130,13 +131,15 @@ public partial class ApiSandboxViewModel : ViewModelBase
     {
         if (SelectedEndpoint == null) return;
         StatusMessage = "cURL command copied to clipboard";
+        _mainViewModel.ShowToast("cURL command copied to clipboard");
     }
-    
+
     [RelayCommand]
     private void CopyAsPython()
     {
         if (SelectedEndpoint == null) return;
         StatusMessage = "Python code copied to clipboard";
+        _mainViewModel.ShowToast("Python code copied to clipboard");
     }
     
     [RelayCommand]

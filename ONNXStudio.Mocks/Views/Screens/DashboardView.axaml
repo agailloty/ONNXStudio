@@ -28,28 +28,45 @@
                 <StackPanel Grid.Column="1"
                             Orientation="Horizontal"
                             HorizontalAlignment="Right">
-                    <Button Content="+ Open Model"
-                            Classes="primary"
-                            Command="{Binding OpenModelCommand}" />
-                    <Button Content="Settings"
-                            Classes="secondary"
-                            Command="{Binding ShowSettingsCommand}" />
+                    <Button Classes="primary"
+                            Command="{Binding OpenModelCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <PathIcon Data="{StaticResource IconPlus}" Width="14" Height="14"/>
+                            <TextBlock Text="Open Model"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Classes="secondary"
+                            Command="{Binding ShowSettingsCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <PathIcon Data="{StaticResource IconSettings}" Width="14" Height="14"/>
+                            <TextBlock Text="Settings"/>
+                        </StackPanel>
+                    </Button>
                 </StackPanel>
             </Grid>
         </Border>
 
-        <!-- Search Box -->
+        <!-- Search + sort -->
         <Border DockPanel.Dock="Top"
                 Background="{DynamicResource BackgroundBrush}"
                 Padding="16,8">
             <StackPanel Orientation="Horizontal" Spacing="8">
+                <PathIcon Data="{StaticResource IconSearch}"
+                          Width="16"
+                          Height="16"
+                          Foreground="{DynamicResource TextSecondaryBrush}"
+                          VerticalAlignment="Center"/>
                 <TextBox PlaceholderText="Search models..."
                          Text="{Binding SearchText, Mode=TwoWay}"
                          MinWidth="320"
                          HorizontalAlignment="Left" />
-                <Button Content="Search"
-                        Classes="secondary"
-                        Command="{Binding SearchCommand}" />
+                <TextBlock Text="Sort by:"
+                           Classes="body-secondary"
+                           VerticalAlignment="Center"
+                           Margin="12,0,0,0"/>
+                <ComboBox ItemsSource="{Binding SortOptions}"
+                          SelectedItem="{Binding SelectedSort, Mode=TwoWay}"
+                          MinWidth="160"/>
             </StackPanel>
         </Border>
 
@@ -86,14 +103,19 @@
                         <controls:Card Width="240"
                                       Margin="8">
                             <StackPanel Spacing="8">
-                                <!-- Preview/Icon -->
+                                <!-- Preview/Type badge -->
                                 <Border Background="{DynamicResource SurfaceElevatedBrush}"
+                                        BorderBrush="{DynamicResource BorderBrush}"
+                                        BorderThickness="1"
                                         CornerRadius="6"
                                         Height="64"
                                         Width="64"
                                         HorizontalAlignment="Center">
                                     <TextBlock Text="{Binding PreviewIcon}"
-                                               FontSize="36"
+                                               FontFamily="{DynamicResource CodeFontFamily}"
+                                               FontSize="18"
+                                               FontWeight="SemiBold"
+                                               Foreground="{DynamicResource PrimaryBrush}"
                                                HorizontalAlignment="Center"
                                                VerticalAlignment="Center" />
                                 </Border>
