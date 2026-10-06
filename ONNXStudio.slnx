@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/tests/">
+    <Project Path="tests/ONNXStudio.Core.Tests/ONNXStudio.Core.Tests.csproj" />
+  </Folder>
+  <Project Path="ONNXStudio.Api/ONNXStudio.Api.csproj" />
+  <Project Path="ONNXStudio.Core/ONNXStudio.Core.csproj" />
+</Solution>
