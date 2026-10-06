@@ -25,6 +25,7 @@ public class ViewLocator : IDataTemplate
             ViewModels.Screens.InferencePlaygroundViewModel => new Views.Screens.InferencePlaygroundView(),
             ViewModels.Screens.ApiConfigViewModel => new Views.Screens.ApiConfigView(),
             ViewModels.Screens.ApiSandboxViewModel => new Views.Screens.ApiSandboxView(),
+            ViewModels.Screens.SettingsViewModel => new Views.Screens.SettingsView(),
             _ => new TextBlock { Text = "No view for " + param?.GetType().Name }
         };
     }

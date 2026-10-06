@@ -22,6 +22,13 @@
                     <TextBlock Text="Dashboard" Classes="body-secondary" VerticalAlignment="Center"/>
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button Classes="secondary"
+                            Command="{Binding ShowSettingsCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <PathIcon Data="{StaticResource IconSettings}" Width="14" Height="14"/>
+                            <TextBlock Text="Settings"/>
+                        </StackPanel>
+                    </Button>
                     <Button Classes="primary"
                             Command="{Binding RefreshCommand}">
                         <StackPanel Orientation="Horizontal" Spacing="6">

@@ -81,6 +81,15 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             : null;
     }
 
+    public void ShowSettings()
+    {
+        CurrentViewModel = new ViewModels.Screens.SettingsViewModel(
+            this,
+            _services.GetRequiredService<IThemeService>(),
+            _services.GetRequiredService<IToastService>(),
+            _services.GetRequiredService<ONNXStudio.Api.ApiServerHost>());
+    }
+
     /// <summary>
     /// Sets the current screen directly (used by the model load coordinator).
     /// </summary>

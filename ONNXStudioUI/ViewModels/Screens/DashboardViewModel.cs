@@ -61,6 +61,12 @@ public partial class DashboardViewModel : ViewModelBase
     }
 
     [RelayCommand]
+    private void ShowSettings()
+    {
+        _shell.ShowSettings();
+    }
+
+    [RelayCommand]
     private void InspectModel(OnnxModel model)
     {
         _shell.ShowInspector(model);
