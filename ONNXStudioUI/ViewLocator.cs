@@ -21,6 +21,7 @@ public class ViewLocator : IDataTemplate
             ViewModels.Screens.WelcomeViewModel => new Views.Screens.WelcomeView(),
             ViewModels.Screens.DashboardViewModel => new Views.Screens.DashboardView(),
             ViewModels.Screens.ModelLoadingViewModel => new Views.Screens.ModelLoadingView(),
+            ViewModels.Screens.ModelInspectorViewModel => new Views.Screens.ModelInspectorView(),
             _ => new TextBlock { Text = "No view for " + param?.GetType().Name }
         };
     }

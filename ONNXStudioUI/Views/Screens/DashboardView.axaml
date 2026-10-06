@@ -89,11 +89,16 @@
                                     <TextBlock Text="{Binding Graph.Nodes.Count, StringFormat='{}{0} nodes'}" Classes="body-small"/>
                                 </StackPanel>
 
-                                <Button Content="Unload"
-                                        Classes="small danger"
-                                        Command="{Binding $parent[ItemsControl].((vm:DashboardViewModel)DataContext).UnloadModelCommand}"
-                                        CommandParameter="{Binding}"
-                                        HorizontalAlignment="Center"/>
+                                <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Center">
+                                    <Button Content="Inspect"
+                                            Classes="small primary"
+                                            Command="{Binding $parent[ItemsControl].((vm:DashboardViewModel)DataContext).InspectModelCommand}"
+                                            CommandParameter="{Binding}"/>
+                                    <Button Content="Unload"
+                                            Classes="small danger"
+                                            Command="{Binding $parent[ItemsControl].((vm:DashboardViewModel)DataContext).UnloadModelCommand}"
+                                            CommandParameter="{Binding}"/>
+                                </StackPanel>
                             </StackPanel>
                         </controls:Card>
                     </DataTemplate>

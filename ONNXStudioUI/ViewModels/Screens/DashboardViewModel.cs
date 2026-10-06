@@ -61,6 +61,12 @@ public partial class DashboardViewModel : ViewModelBase
     }
 
     [RelayCommand]
+    private void InspectModel(OnnxModel model)
+    {
+        _shell.ShowInspector(model);
+    }
+
+    [RelayCommand]
     private void UnloadModel(OnnxModel model)
     {
         _registry.Unload(model.Id);

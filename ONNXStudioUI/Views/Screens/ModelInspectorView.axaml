@@ -1,0 +1,223 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:ONNXStudioUI.ViewModels.Screens"
+             xmlns:models="using:ONNXStudio.Core.Models"
+             xmlns:controls="using:ONNXStudioUI.Controls"
+             mc:Ignorable="d"
+             x:Class="ONNXStudioUI.Views.Screens.ModelInspectorView"
+             x:DataType="vm:ModelInspectorViewModel">
+
+    <UserControl.Styles>
+        <Style Selector="Button.graph-node">
+            <Setter Property="Background" Value="{DynamicResource SurfaceElevatedBrush}"/>
+            <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="Margin" Value="4"/>
+            <Setter Property="FontFamily" Value="{DynamicResource CodeFontFamily}"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="MinWidth" Value="60"/>
+        </Style>
+        <Style Selector="Button.graph-node:pointerover">
+            <Setter Property="BorderThickness" Value="3"/>
+        </Style>
+    </UserControl.Styles>
+
+    <DockPanel>
+        <!-- Toolbar -->
+        <Border DockPanel.Dock="Top"
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,0,0,1"
+                Padding="16,12">
+            <Grid ColumnDefinitions="Auto,Auto,1*,Auto">
+                <Button Grid.Column="0" Classes="secondary" Command="{Binding BackCommand}">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <PathIcon Data="{StaticResource IconChevronLeft}" Width="14" Height="14"/>
+                        <TextBlock Text="Back"/>
+                    </StackPanel>
+                </Button>
+                <TextBlock Grid.Column="1"
+                           Text="{Binding Model.Name}"
+                           Classes="h2"
+                           VerticalAlignment="Center"
+                           Margin="16,0,0,0"/>
+                <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="4">
+                    <Button Content="Inspect" Classes="tab-active"/>
+                    <Button Content="Inference"
+                            Classes="secondary"
+                            Command="{Binding SwitchToInferenceCommand}"/>
+                    <Button Content="API"
+                            Classes="secondary"
+                            Command="{Binding SwitchToApiCommand}"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Statistics bar -->
+        <Border DockPanel.Dock="Bottom"
+                Background="{DynamicResource SurfaceElevatedBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="16,8">
+            <StackPanel Orientation="Horizontal" Spacing="24">
+                <TextBlock Classes="body-small" Text="{Binding Model.ProducerName, StringFormat='Producer: {0}'}"/>
+                <TextBlock Classes="body-small" Text="{Binding Model.OpsetVersion, StringFormat='Opset: {0}'}"/>
+                <TextBlock Classes="body-small" Text="{Binding Statistics.NodeCount, StringFormat='{}{0} nodes'}"/>
+                <TextBlock Classes="body-small" Text="{Binding Statistics.EdgeCount, StringFormat='{}{0} edges'}"/>
+                <TextBlock Classes="body-small" Text="{Binding Statistics.TotalParameters, StringFormat='{}{0} parameters'}"/>
+                <TextBlock Classes="body-small" Text="{Binding Model.FileSizeDisplay}"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Main content -->
+        <Grid ColumnDefinitions="1*,320" Margin="12">
+
+            <!-- Graph -->
+            <Border Grid.Column="0"
+                    Background="{DynamicResource SurfaceBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8">
+                <DockPanel>
+                    <!-- Search + filter -->
+                    <Border DockPanel.Dock="Top" Padding="12,8">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <PathIcon Data="{StaticResource IconSearch}" Width="14" Height="14"
+                                      Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                            <TextBox PlaceholderText="Search nodes..."
+                                     Text="{Binding SearchText, Mode=TwoWay}"
+                                     MinWidth="220"/>
+                            <ComboBox ItemsSource="{Binding Categories}"
+                                      SelectedItem="{Binding SelectedCategory, Mode=TwoWay}"
+                                      MinWidth="140"/>
+                        </StackPanel>
+                    </Border>
+
+                    <ScrollViewer>
+                        <ItemsControl ItemsSource="{Binding Nodes}" Margin="12">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:NodeItemViewModel">
+                                    <Button Classes="graph-node"
+                                            BorderBrush="{Binding CategoryBrush}"
+                                            Content="{Binding OpType}"
+                                            ToolTip.Tip="{Binding Tooltip}"
+                                            Command="{Binding $parent[ItemsControl].((vm:ModelInspectorViewModel)DataContext).SelectNodeCommand}"
+                                            CommandParameter="{Binding}"/>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </DockPanel>
+            </Border>
+
+            <!-- Node details -->
+            <Border Grid.Column="1"
+                    Background="{DynamicResource SurfaceBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}"
+                    BorderThickness="1,0,0,0"
+                    CornerRadius="0,8,8,0">
+                <ScrollViewer>
+                    <StackPanel Margin="16" Spacing="12">
+                        <TextBlock Text="Node details" Classes="h3"/>
+
+                        <!-- Empty state -->
+                        <TextBlock Text="Click on a node to see its details"
+                                   Classes="body-secondary"
+                                   IsVisible="{Binding !ShowNodeDetails}"
+                                   Margin="0,24,0,0"/>
+
+                        <!-- Selected node -->
+                        <StackPanel IsVisible="{Binding ShowNodeDetails}" Spacing="12">
+                            <TextBlock Text="{Binding SelectedNode.OpType}" Classes="h4"
+                                       Foreground="{Binding SelectedNode.CategoryBrush}"/>
+                            <TextBlock Text="{Binding SelectedNode.Name}" Classes="code"/>
+                            <TextBlock Text="{Binding DependencySummary}" Classes="body-small"/>
+
+                            <GroupBox Header="Attributes">
+                                <ItemsControl ItemsSource="{Binding SelectedNodeAttributes}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:AttributeEntry">
+                                            <Grid ColumnDefinitions="150,1*" Margin="0,3">
+                                                <TextBlock Grid.Column="0" Text="{Binding Key}" Classes="label" VerticalAlignment="Center"/>
+                                                <TextBlock Grid.Column="1" Text="{Binding Value}" Classes="code" TextWrapping="Wrap" VerticalAlignment="Center"/>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </GroupBox>
+
+                            <GroupBox Header="Inputs">
+                                <ItemsControl ItemsSource="{Binding SelectedNodeInputs}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="x:String">
+                                            <TextBlock Text="{Binding}" Classes="code"/>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </GroupBox>
+
+                            <GroupBox Header="Outputs">
+                                <ItemsControl ItemsSource="{Binding SelectedNodeOutputs}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="x:String">
+                                            <TextBlock Text="{Binding}" Classes="code"/>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </GroupBox>
+                        </StackPanel>
+
+                        <!-- Model inputs / outputs / weights -->
+                        <GroupBox Header="Model inputs">
+                            <ItemsControl ItemsSource="{Binding Model.Inputs}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="models:TensorSchema">
+                                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,2">
+                                            <TextBlock Text="{Binding Name}" Classes="code"/>
+                                            <TextBlock Text="{Binding Display}" Classes="body-small"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </GroupBox>
+
+                        <GroupBox Header="Model outputs">
+                            <ItemsControl ItemsSource="{Binding Model.Outputs}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="models:TensorSchema">
+                                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,2">
+                                            <TextBlock Text="{Binding Name}" Classes="code"/>
+                                            <TextBlock Text="{Binding Display}" Classes="body-small"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </GroupBox>
+
+                        <GroupBox Header="Initializers">
+                            <ItemsControl ItemsSource="{Binding Initializers}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="models:InitializerInfo">
+                                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,2">
+                                            <TextBlock Text="{Binding Name}" Classes="code"/>
+                                            <TextBlock Text="{Binding ShapeDisplay}" Classes="body-small"/>
+                                            <TextBlock Text="{Binding ElementCount, StringFormat='{}{0} elements'}" Classes="body-small"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </GroupBox>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+    </DockPanel>
+</UserControl>

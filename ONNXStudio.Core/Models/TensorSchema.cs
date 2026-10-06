@@ -20,6 +20,9 @@ public sealed class TensorSchema
 
     public bool HasDynamicDimension => Shape.Any(d => d is null);
 
+    /// <summary>Binding-friendly display string (compiled bindings cannot call methods).</summary>
+    public string Display => ToDisplayString();
+
     /// <summary>
     /// Display form like "float32[1, 3, 224, 224]" with "?" for dynamic dims.
     /// </summary>

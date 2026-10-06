@@ -17,10 +17,11 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
 {
     private readonly IServiceProvider _services;
     private readonly IModelRegistry _registry;
-    private readonly IModelLoader _loader;
+    private readonly IGraphAnalysisService _graphService;
     private readonly IToastService _toast;
     private readonly IThemeService _theme;
     private readonly ILogger<MainWindowViewModel> _logger;
+    private readonly Dictionary<string, ViewModelBase> _screenCache = new();
 
     [ObservableProperty]
     private ViewModelBase? _currentViewModel;
@@ -37,14 +38,14 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     public MainWindowViewModel(
         IServiceProvider services,
         IModelRegistry registry,
-        IModelLoader loader,
+        IGraphAnalysisService graphService,
         IToastService toast,
         IThemeService theme,
         ILogger<MainWindowViewModel> logger)
     {
         _services = services;
         _registry = registry;
-        _loader = loader;
+        _graphService = graphService;
         _toast = toast;
         _theme = theme;
         _logger = logger;
@@ -85,6 +86,35 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     public void SetCurrentScreen(ViewModelBase viewModel)
     {
         CurrentViewModel = viewModel;
+    }
+
+    // ----- model screens (cached per model so state is preserved) -----
+
+    public void ShowInspector(OnnxModel model)
+    {
+        CurrentViewModel = GetOrCreateScreen("inspector:" + model.Id,
+            () => new ViewModels.Screens.ModelInspectorViewModel(this, _graphService, model));
+    }
+
+    // Wired by T9 (playground) and T10 (API config/sandbox); stubs meanwhile.
+    public void ShowPlayground(OnnxModel model)
+        => ShowToast("Inference playground is coming in the next iteration");
+
+    public void ShowApiConfig(OnnxModel model)
+        => ShowToast("API configuration is coming in the next iteration");
+
+    public void ShowApiSandbox(OnnxModel model)
+        => ShowToast("API sandbox is coming in the next iteration");
+
+    private ViewModelBase GetOrCreateScreen(string key, Func<ViewModelBase> factory)
+    {
+        if (_screenCache.TryGetValue(key, out var cached))
+        {
+            return cached;
+        }
+        var vm = factory();
+        _screenCache[key] = vm;
+        return vm;
     }
 
     // ----- model registry projection -----
