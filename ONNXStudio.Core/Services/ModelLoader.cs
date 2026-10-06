@@ -133,8 +133,7 @@ public sealed class ModelLoader : IModelLoader
                     "An unexpected error occurred while loading the model.", ex.Message, ex));
         }
 
-        var model = BuildModel(filePath, fileInfo.Length, raw);
-        _logger.LogInformation("Loaded ONNX model {ModelName} (opset {Opset}, {Nodes} nodes, {Inputs} inputs, {Outputs} outputs)",
+        var model = BuildModel(filePath, fileInfo.Length, raw);        _logger.LogInformation("Loaded ONNX model {ModelName} (opset {Opset}, {Nodes} nodes, {Inputs} inputs, {Outputs} outputs)",
             model.Name, model.OpsetVersion, model.Graph.Nodes.Count, model.Inputs.Count, model.Outputs.Count);
 
         return Result<OnnxModel, ModelLoadError>.Success(model);
@@ -169,6 +168,10 @@ public sealed class ModelLoader : IModelLoader
                 v.Shape))
             .ToList();
 
+        var initializers = raw.Initializers
+            .Select(t => new InitializerInfo(t.Name, t.Dims, t.Dims.Aggregate(1L, (a, b) => a * b)))
+            .ToList();
+
         return new OnnxModel(
             id: Guid.NewGuid().ToString("N"),
             filePath: filePath,
@@ -181,7 +184,8 @@ public sealed class ModelLoader : IModelLoader
             irVersion: raw.IrVersion,
             graph: new ComputationGraph(nodes, edges),
             inputs: inputs,
-            outputs: outputs);
+            outputs: outputs,
+            initializers: initializers);
     }
 
     /// <summary>

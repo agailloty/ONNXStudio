@@ -18,6 +18,7 @@ public static class CoreServiceCollectionExtensions
         services.AddSingleton<IInferenceSessionManager, InferenceSessionManager>();
         services.AddSingleton<IInferenceService, InferenceService>();
         services.AddSingleton<IFormGenerationService, FormGenerationService>();
+        services.AddSingleton<IGraphAnalysisService, GraphAnalysisService>();
         return services;
     }
 }

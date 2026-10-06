@@ -27,6 +27,9 @@ public sealed class OnnxModel
     public IReadOnlyList<TensorSchema> Inputs { get; }
     public IReadOnlyList<TensorSchema> Outputs { get; }
 
+    // Weights (lazy-loaded raw values, metadata only)
+    public IReadOnlyList<InitializerInfo> Initializers { get; }
+
     public OnnxModel(
         string id,
         string filePath,
@@ -39,7 +42,8 @@ public sealed class OnnxModel
         long irVersion,
         ComputationGraph graph,
         IReadOnlyList<TensorSchema> inputs,
-        IReadOnlyList<TensorSchema> outputs)
+        IReadOnlyList<TensorSchema> outputs,
+        IReadOnlyList<InitializerInfo>? initializers = null)
     {
         Id = id;
         Name = Path.GetFileNameWithoutExtension(filePath);
@@ -55,6 +59,7 @@ public sealed class OnnxModel
         Graph = graph;
         Inputs = inputs;
         Outputs = outputs;
+        Initializers = initializers ?? Array.Empty<InitializerInfo>();
     }
 
     /// <summary>
