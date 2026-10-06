@@ -13,6 +13,7 @@ public interface IFilePickerService
 {
     Task<string?> PickModelFileAsync();
     Task<string[]> PickModelFilesAsync();
+    Task<string?> PickImageFileAsync();
 }
 
 public sealed class FilePickerService : IFilePickerService
@@ -56,5 +57,28 @@ public sealed class FilePickerService : IFilePickerService
             : result
                 .Select(f => f.TryGetLocalPath() ?? f.Path.AbsolutePath)
                 .ToArray();
+    }
+
+    public async Task<string?> PickImageFileAsync()
+    {
+        var provider = _storageProvider?.Invoke();
+        if (provider == null)
+        {
+            return null;
+        }
+
+        var result = await provider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = "Open image",
+            AllowMultiple = false,
+            FileTypeFilter = new[]
+            {
+                new FilePickerFileType("Image") { Patterns = new[] { "*.png", "*.jpg", "*.jpeg", "*.bmp" } }
+            }
+        });
+
+        return result.Count == 0
+            ? null
+            : result[0].TryGetLocalPath() ?? result[0].Path.AbsolutePath;
     }
 }

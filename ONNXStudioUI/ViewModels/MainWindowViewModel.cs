@@ -2,6 +2,7 @@ using System;
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ONNXStudio.Core.Models;
 using ONNXStudio.Core.Services;
@@ -96,9 +97,17 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             () => new ViewModels.Screens.ModelInspectorViewModel(this, _graphService, model));
     }
 
-    // Wired by T9 (playground) and T10 (API config/sandbox); stubs meanwhile.
+    // Playground navigation is wired in T9; API screens in T10.
     public void ShowPlayground(OnnxModel model)
-        => ShowToast("Inference playground is coming in the next iteration");
+    {
+        CurrentViewModel = GetOrCreateScreen("playground:" + model.Id,
+            () => new ViewModels.Screens.InferencePlaygroundViewModel(
+                this,
+                _services.GetRequiredService<IInferenceService>(),
+                _services.GetRequiredService<IFormGenerationService>(),
+                _services.GetRequiredService<IFilePickerService>(),
+                model));
+    }
 
     public void ShowApiConfig(OnnxModel model)
         => ShowToast("API configuration is coming in the next iteration");
