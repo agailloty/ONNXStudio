@@ -1,0 +1,26 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                     xmlns:sys="clr-namespace:System;assembly=mscorlib">
+    <!-- Spacing Values -->
+    <Thickness x:Key="SpacingXs">4</Thickness>
+    <Thickness x:Key="SpacingSm">8</Thickness>
+    <Thickness x:Key="SpacingMd">16</Thickness>
+    <Thickness x:Key="SpacingLg">24</Thickness>
+    <Thickness x:Key="SpacingXl">32</Thickness>
+    <Thickness x:Key="SpacingXxl">48</Thickness>
+    
+    <!-- Double Values for non-Thickness properties -->
+    <sys:Double x:Key="SpacingXsDouble">4</sys:Double>
+    <sys:Double x:Key="SpacingSmDouble">8</sys:Double>
+    <sys:Double x:Key="SpacingMdDouble">16</sys:Double>
+    <sys:Double x:Key="SpacingLgDouble">24</sys:Double>
+    <sys:Double x:Key="SpacingXlDouble">32</sys:Double>
+    <sys:Double x:Key="SpacingXxlDouble">48</sys:Double>
+    
+    <!-- Corner Radius -->
+    <CornerRadius x:Key="CornerRadiusSm">4</CornerRadius>
+    <CornerRadius x:Key="CornerRadiusMd">6</CornerRadius>
+    <CornerRadius x:Key="CornerRadiusLg">8</CornerRadius>
+    <CornerRadius x:Key="CornerRadiusXl">12</CornerRadius>
+    <CornerRadius x:Key="CornerRadiusFull">9999</CornerRadius>
+</ResourceDictionary>

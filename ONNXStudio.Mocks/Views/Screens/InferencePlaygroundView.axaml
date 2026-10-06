@@ -1,0 +1,285 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             x:Class="ONNXStudio.Mocks.Views.Screens.InferencePlaygroundView">
+
+    <DockPanel>
+        <!-- Toolbar -->
+        <Border DockPanel.Dock="Top"
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,0,0,1"
+                Padding="16,12">
+            <Grid ColumnDefinitions="Auto,Auto,1*,Auto,Auto,Auto">
+                <Button Grid.Column="0"
+                        Content="&#x2190; Back"
+                        Classes="secondary"
+                        Command="{Binding BackCommand}" />
+                <TextBlock Grid.Column="1"
+                           Text="{Binding Model.Name}"
+                           Classes="h2"
+                           VerticalAlignment="Center"
+                           Margin="16,0,0,0" />
+                <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="4">
+                    <Button Content="Inspect"
+                            Classes="secondary"
+                            Command="{Binding SwitchToInspectorCommand}" />
+                    <Button Content="Inference"
+                            Classes="tab-active" />
+                    <Button Content="API"
+                            Classes="secondary"
+                            Command="{Binding SwitchToApiCommand}" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Main Content -->
+        <Grid RowDefinitions="Auto,1*,Auto"
+              Margin="16">
+
+            <!-- Input Form -->
+            <GroupBox Grid.Row="0" Header="Input Form">
+                <StackPanel Spacing="8">
+                    <ItemsControl ItemsSource="{Binding Inputs}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Background="{DynamicResource SurfaceElevatedBrush}"
+                                        BorderBrush="{DynamicResource BorderBrush}"
+                                        BorderThickness="{Binding IsValid, Converter={StaticResource BoolToBorderConverter}}"
+                                        CornerRadius="6"
+                                        Padding="12"
+                                        Margin="0,4">
+                                    <StackPanel Spacing="8">
+
+                                        <!-- Input header -->
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <TextBlock Text="{Binding DisplayName}" Classes="label" VerticalAlignment="Center" />
+                                            <TextBlock Classes="body-small" VerticalAlignment="Center">
+                                                <TextBlock.Text>
+                                                    <MultiBinding StringFormat="Type: {0}[{1}]">
+                                                        <Binding Path="Type"/>
+                                                        <Binding Path="ShapeDisplay"/>
+                                                    </MultiBinding>
+                                                </TextBlock.Text>
+                                            </TextBlock>
+                                        </StackPanel>
+
+                                        <!-- Input Type: Image -->
+                                        <StackPanel IsVisible="{Binding InputType, Converter={StaticResource StringToVisibilityConverter}, ConverterParameter=Image}"
+                                                    Spacing="8">
+                                            <Border Background="{DynamicResource BackgroundBrush}"
+                                                    CornerRadius="6"
+                                                    Height="120"
+                                                    Padding="16">
+                                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="4">
+                                                    <TextBlock Text="&#x1F4F7;"
+                                                               FontSize="36"
+                                                               HorizontalAlignment="Center" />
+                                                    <Button Content="Upload Image"
+                                                            Classes="secondary small"
+                                                            HorizontalAlignment="Center" />
+                                                    <TextBlock Text="Current: none"
+                                                               Classes="body-small"
+                                                               HorizontalAlignment="Center" />
+                                                    <TextBlock Text="{Binding ShapeDisplay, StringFormat='Expected: {0}'}"
+                                                               Classes="body-small"
+                                                               HorizontalAlignment="Center" />
+                                                </StackPanel>
+                                            </Border>
+                                            <ComboBox SelectedIndex="0" MaxWidth="220" HorizontalAlignment="Left">
+                                                <ComboBoxItem>Normalize: [0, 1]</ComboBoxItem>
+                                                <ComboBoxItem>Normalize: [-1, 1]</ComboBoxItem>
+                                                <ComboBoxItem>No normalization</ComboBoxItem>
+                                            </ComboBox>
+                                        </StackPanel>
+
+                                        <!-- Input Type: Vector -->
+                                        <StackPanel IsVisible="{Binding InputType, Converter={StaticResource StringToVisibilityConverter}, ConverterParameter=Vector}"
+                                                    Spacing="8">
+                                            <TextBox AcceptsReturn="True"
+                                                     Text="{Binding VectorValues, Mode=TwoWay}"
+                                                     PlaceholderText="Enter comma-separated values"
+                                                     FontFamily="{DynamicResource CodeFontFamily}"
+                                                     MinHeight="60" />
+                                            <TextBlock Text="Enter comma-separated values"
+                                                       Classes="body-small" />
+                                        </StackPanel>
+
+                                        <!-- Input Type: Number/Slider -->
+                                        <StackPanel IsVisible="{Binding InputType, Converter={StaticResource StringToVisibilityConverter}, ConverterParameter=Number}"
+                                                    Spacing="8">
+                                            <StackPanel Orientation="Horizontal" Spacing="12">
+                                                <Slider Minimum="{Binding Min}"
+                                                        Maximum="{Binding Max}"
+                                                        Value="{Binding Value, Mode=TwoWay}"
+                                                        MinWidth="240"
+                                                        VerticalAlignment="Center" />
+                                                <TextBox Text="{Binding Value, Mode=TwoWay}"
+                                                         Width="90" />
+                                            </StackPanel>
+                                            <TextBlock Text="{Binding DisplayName, StringFormat='Adjust {0}'}"
+                                                       Classes="body-small" />
+                                        </StackPanel>
+
+                                        <!-- Input Type: Text -->
+                                        <StackPanel IsVisible="{Binding InputType, Converter={StaticResource StringToVisibilityConverter}, ConverterParameter=Text}"
+                                                    Spacing="8">
+                                            <TextBox AcceptsReturn="True"
+                                                     Text=""
+                                                     PlaceholderText="Enter text here..."
+                                                     MinHeight="60" />
+                                            <TextBlock Text="Max Tokens: 128 | Tokenizer: Whitespace"
+                                                       Classes="body-small" />
+                                        </StackPanel>
+
+                                        <!-- Error Message -->
+                                        <TextBlock Text="{Binding ErrorMessage}"
+                                                   IsVisible="{Binding IsValid, Converter={StaticResource BoolToInverseVisibilityConverter}}"
+                                                   Foreground="{DynamicResource ErrorBrush}"
+                                                   Classes="body-small" />
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- Run Button -->
+                    <Button Content="{Binding RunButtonText}"
+                            Classes="primary large"
+                            Command="{Binding RunInferenceCommand}"
+                            IsEnabled="{Binding IsRunning, Converter={StaticResource BoolToInverseConverter}}"
+                            HorizontalAlignment="Right" />
+                </StackPanel>
+            </GroupBox>
+
+            <!-- Results Section -->
+            <GroupBox Grid.Row="1" Header="Results" Margin="0,16,0,0">
+                <ScrollViewer>
+                    <StackPanel Margin="8">
+
+                        <!-- Empty state -->
+                        <TextBlock IsVisible="{Binding Result, Converter={StaticResource NullToInverseVisibilityConverter}}"
+                                   Text="Run inference to see results."
+                                   Classes="body-secondary"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   Margin="0,32,0,0" />
+
+                        <!-- Results content -->
+                        <StackPanel IsVisible="{Binding Result, Converter={StaticResource NullToVisibilityConverter}}"
+                                    Spacing="12">
+
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock Text="Execution Time:" Classes="body" />
+                                <TextBlock Text="{Binding Result.ExecutionTimeMs, StringFormat='{}{0} ms'}"
+                                           Classes="body"
+                                           Foreground="{DynamicResource PrimaryBrush}" />
+                                <TextBlock Text="&#x00B7;" Classes="body" />
+                                <TextBlock Text="{Binding Result.ModelName, StringFormat='Model: {0}'}" Classes="body-secondary" />
+                            </StackPanel>
+
+                            <ItemsControl ItemsSource="{Binding Result.Outputs}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Background="{DynamicResource SurfaceElevatedBrush}"
+                                                CornerRadius="6"
+                                                Padding="12"
+                                                Margin="0,4">
+                                            <StackPanel Spacing="8">
+                                                <TextBlock Text="{Binding DisplayName}" Classes="h4" />
+                                                <TextBlock Classes="body-small">
+                                                    <TextBlock.Text>
+                                                        <MultiBinding StringFormat="{}{0}[{1}]">
+                                                            <Binding Path="Type"/>
+                                                            <Binding Path="ShapeDisplay"/>
+                                                        </MultiBinding>
+                                                    </TextBlock.Text>
+                                                </TextBlock>
+
+                                                <!-- Regression-style value (e.g. "$205,300") -->
+                                                <TextBlock Text="{Binding DisplayValue}"
+                                                           IsVisible="{Binding DisplayValue, Converter={StaticResource StringToVisibilityConverter}}"
+                                                           Classes="h2"
+                                                           Foreground="{DynamicResource PrimaryBrush}"
+                                                           Margin="0,4" />
+
+                                                <!-- Classification Results -->
+                                                <ItemsControl ItemsSource="{Binding ClassificationResults}">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <StackPanel Orientation="Horizontal"
+                                                                        Spacing="8"
+                                                                        Margin="0,2">
+                                                                <TextBlock Text="{Binding Index, StringFormat='{}{0}.'}"
+                                                                           Classes="body-small"
+                                                                           Width="24" />
+                                                                <TextBlock Text="{Binding Label}"
+                                                                           Classes="body-small"
+                                                                           Width="100" />
+                                                                <ProgressBar Value="{Binding Confidence}"
+                                                                             Maximum="1"
+                                                                             Width="240"
+                                                                             Height="8"
+                                                                             Foreground="{DynamicResource SuccessBrush}" />
+                                                                <TextBlock Text="{Binding Confidence, StringFormat='{}{0:P1}'}"
+                                                                           Classes="body-small"
+                                                                           Width="56" />
+                                                            </StackPanel>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+
+                                                <!-- Raw Data Section -->
+                                                <Expander Header="Raw Data">
+                                                    <TextBlock Text="Raw tensor data would be displayed here"
+                                                               Classes="body-small code"
+                                                               TextWrapping="Wrap" />
+                                                </Expander>
+
+                                                <!-- Actions -->
+                                                <StackPanel Orientation="Horizontal"
+                                                            Spacing="8"
+                                                            HorizontalAlignment="Right"
+                                                            Margin="0,4,0,0">
+                                                    <Button Content="Copy Results"
+                                                            Classes="small secondary"
+                                                            Command="{Binding $parent[ItemsControl].DataContext.CopyResultsCommand}" />
+                                                    <Button Content="Save Results"
+                                                            Classes="small secondary"
+                                                            Command="{Binding $parent[ItemsControl].DataContext.SaveResultsCommand}" />
+                                                </StackPanel>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
+            </GroupBox>
+
+            <!-- Bottom bar: Batch Size + Run -->
+            <Border Grid.Row="2"
+                    Background="{DynamicResource SurfaceBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}"
+                    BorderThickness="0,1,0,0"
+                    CornerRadius="8"
+                    Padding="16,12"
+                    Margin="0,16,0,0">
+                <Grid ColumnDefinitions="Auto,Auto,1*,Auto">
+                    <TextBlock Grid.Column="0" Text="Batch Size:" Classes="label" VerticalAlignment="Center" />
+                    <TextBox Grid.Column="1"
+                             Text="{Binding BatchSize, Mode=TwoWay}"
+                             Width="80" />
+                    <Button Grid.Column="3"
+                            Content="{Binding RunButtonText}"
+                            Classes="primary large"
+                            Command="{Binding RunInferenceCommand}"
+                            IsEnabled="{Binding IsRunning, Converter={StaticResource BoolToInverseConverter}}" />
+                </Grid>
+            </Border>
+        </Grid>
+    </DockPanel>
+</UserControl>

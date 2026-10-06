@@ -1,0 +1,221 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             x:Class="ONNXStudio.Mocks.Views.Screens.ApiSandboxView">
+
+    <UserControl.Styles>
+        <Style Selector="Border.panel">
+            <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Margin" Value="4"/>
+        </Style>
+        <Style Selector="TextBlock.method">
+            <Setter Property="FontFamily" Value="{DynamicResource CodeFontFamily}"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+        </Style>
+    </UserControl.Styles>
+
+    <DockPanel>
+        <!-- Toolbar -->
+        <Border DockPanel.Dock="Top"
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,0,0,1"
+                Padding="16,12">
+            <Grid ColumnDefinitions="Auto,Auto,1*,Auto,Auto,Auto">
+                <Button Grid.Column="0"
+                        Content="&#x2190; Back"
+                        Classes="secondary"
+                        Command="{Binding BackCommand}" />
+                <TextBlock Grid.Column="1"
+                           Text="{Binding ModelName}"
+                           Classes="h2"
+                           VerticalAlignment="Center"
+                           Margin="16,0,0,0" />
+                <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="4">
+                    <Button Content="Inspect"
+                            Classes="secondary"
+                            Command="{Binding SwitchToInspectorCommand}" />
+                    <Button Content="Inference"
+                            Classes="secondary"
+                            Command="{Binding SwitchToInferenceCommand}" />
+                    <Button Content="API"
+                            Classes="tab-active" />
+                    <Button Content="Configure Endpoint"
+                            Classes="primary"
+                            Command="{Binding SwitchToConfigCommand}" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Main: 3 columns -->
+        <Grid ColumnDefinitions="260,1*,300"
+              Margin="12">
+
+            <!-- Left: Endpoints List -->
+            <Border Grid.Column="0" Classes="panel">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top"
+                               Text="Endpoints"
+                               Classes="h3"
+                               Margin="12,12,12,4" />
+                    <ListBox ItemsSource="{Binding Endpoints}"
+                             SelectedItem="{Binding SelectedEndpoint, Mode=TwoWay}"
+                             Background="Transparent"
+                             BorderThickness="0"
+                             Margin="4">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Margin="0,6" Spacing="2">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <TextBlock Text="{Binding Method}"
+                                                   Classes="method"
+                                                   Foreground="{Binding MethodColor, Converter={StaticResource StringToBrushConverter}}" />
+                                        <TextBlock Text="{Binding Path}" Classes="code" />
+                                    </StackPanel>
+                                    <TextBlock Text="{Binding Description}" Classes="body-small" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+            </Border>
+
+            <!-- Center: Request Builder + Response -->
+            <Grid Grid.Column="1" RowDefinitions="Auto,1*">
+                <!-- Request Builder -->
+                <Border Grid.Row="0" Classes="panel">
+                    <StackPanel Spacing="8" Margin="8">
+                        <TextBlock Text="Request Builder" Classes="h3" />
+
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <ComboBox ItemsSource="{Binding Methods}"
+                                      SelectedItem="{Binding SelectedMethod, Mode=TwoWay}"
+                                      Width="110" />
+                            <TextBox Text="{Binding SelectedEndpoint.Path}"
+                                     IsReadOnly="True"
+                                     MinWidth="260" />
+                        </StackPanel>
+
+                        <GroupBox Header="Request Body">
+                            <TextBox AcceptsReturn="True"
+                                     Text="{Binding RequestBody, Mode=TwoWay}"
+                                     FontFamily="{DynamicResource CodeFontFamily}"
+                                     FontSize="12"
+                                     MinHeight="120" />
+                        </GroupBox>
+
+                        <Button Content="Send Request"
+                                Classes="primary"
+                                Command="{Binding SendRequestCommand}"
+                                IsEnabled="{Binding IsRequesting, Converter={StaticResource BoolToInverseConverter}}"
+                                HorizontalAlignment="Right" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Response Viewer -->
+                <Border Grid.Row="1" Classes="panel">
+                    <DockPanel Margin="8">
+                        <Grid DockPanel.Dock="Top" ColumnDefinitions="Auto,Auto,Auto,1*,Auto,Auto">
+                            <TextBlock Grid.Column="0"
+                                       Text="Status:"
+                                       Classes="body"
+                                       VerticalAlignment="Center" />
+                            <Border Grid.Column="1"
+                                    CornerRadius="4"
+                                    Padding="8,2"
+                                    Margin="8,0,0,0"
+                                    Background="{Binding StatusColor, Converter={StaticResource StringToBrushConverter}}">
+                                <TextBlock Text="{Binding StatusCode}"
+                                           Foreground="{DynamicResource OnPrimaryBrush}"
+                                           FontWeight="Bold" />
+                            </Border>
+                            <TextBlock Grid.Column="2"
+                                       Text="{Binding ExecutionTimeMs, StringFormat='{}{0} ms'}"
+                                       Classes="body-secondary"
+                                       VerticalAlignment="Center"
+                                       Margin="12,0,0,0" />
+                            <Button Grid.Column="4"
+                                    Content="Copy as cURL"
+                                    Classes="small secondary"
+                                    Command="{Binding CopyAsCurlCommand}" />
+                            <Button Grid.Column="5"
+                                    Content="Copy as Python"
+                                    Classes="small secondary"
+                                    Command="{Binding CopyAsPythonCommand}" />
+                        </Grid>
+
+                        <TextBlock DockPanel.Dock="Top"
+                                   Text="Response"
+                                   Classes="h3"
+                                   Margin="0,12,0,4" />
+
+                        <TextBox Text="{Binding ResponseBody}"
+                                 IsReadOnly="True"
+                                 AcceptsReturn="True"
+                                 FontFamily="{DynamicResource CodeFontFamily}"
+                                 FontSize="12"
+                                 VerticalAlignment="Stretch" />
+                    </DockPanel>
+                </Border>
+            </Grid>
+
+            <!-- Right: History -->
+            <Border Grid.Column="2" Classes="panel">
+                <DockPanel>
+                    <Grid DockPanel.Dock="Top" ColumnDefinitions="1*,Auto">
+                        <TextBlock Grid.Column="0"
+                                   Text="Request History"
+                                   Classes="h3"
+                                   Margin="12,12,12,4" />
+                        <Button Grid.Column="1"
+                                Content="Clear"
+                                Classes="small secondary"
+                                Command="{Binding ClearHistoryCommand}"
+                                Margin="0,8,8,0" />
+                    </Grid>
+                    <ListBox ItemsSource="{Binding History}"
+                             SelectedItem="{Binding SelectedHistoryItem, Mode=TwoWay}"
+                             Background="Transparent"
+                             BorderThickness="0"
+                             Margin="4">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Margin="0,6" Spacing="2">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <TextBlock Text="{Binding Method}"
+                                                   Classes="method"
+                                                   Foreground="{Binding MethodColor, Converter={StaticResource StringToBrushConverter}}" />
+                                        <TextBlock Text="{Binding EndpointPath}" Classes="body-small" />
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <TextBlock Text="{Binding StatusCode}"
+                                                   Foreground="{Binding StatusColor, Converter={StaticResource StringToBrushConverter}}"
+                                                   FontWeight="Bold" />
+                                        <TextBlock Text="{Binding TimeDisplay}" Classes="body-small" />
+                                        <TextBlock Text="{Binding ExecutionTimeMs, StringFormat='{}{0} ms'}" Classes="body-small" />
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,2,0,0">
+                                        <Button Content="Re-run"
+                                                Classes="small primary"
+                                                Command="{Binding $parent[ListBox].DataContext.ReRunRequestCommand}"
+                                                CommandParameter="{Binding}" />
+                                        <Button Content="Delete"
+                                                Classes="small secondary"
+                                                Command="{Binding $parent[ListBox].DataContext.DeleteHistoryItemCommand}"
+                                                CommandParameter="{Binding}" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+            </Border>
+        </Grid>
+    </DockPanel>
+</UserControl>

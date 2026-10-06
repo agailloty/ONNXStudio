@@ -1,0 +1,97 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             x:Class="ONNXStudio.Mocks.Views.Screens.WelcomeView">
+
+    <ScrollViewer>
+        <StackPanel VerticalAlignment="Center"
+                    HorizontalAlignment="Center"
+                    MaxWidth="520"
+                    Margin="48">
+
+            <!-- Logo/Title -->
+            <StackPanel HorizontalAlignment="Center"
+                        Margin="0,0,0,24">
+                <TextBlock Text="ONNX Studio"
+                           Classes="h1"
+                           Foreground="{DynamicResource PrimaryBrush}"
+                           HorizontalAlignment="Center" />
+                <TextBlock Text="Visual ONNX model workbench"
+                           Classes="body-secondary"
+                           HorizontalAlignment="Center"
+                           Margin="0,8,0,0" />
+            </StackPanel>
+
+            <!-- Illustration: upload zone -->
+            <Border Classes="drag-zone"
+                    Background="{DynamicResource SurfaceBrush}"
+                    CornerRadius="12"
+                    Padding="40"
+                    Margin="0,0,0,24">
+                <StackPanel>
+                    <TextBlock Text="&#x1F4E6;"
+                               FontSize="72"
+                               HorizontalAlignment="Center" />
+                    <TextBlock Text="&#x2B06;"
+                               FontSize="36"
+                               Foreground="{DynamicResource PrimaryBrush}"
+                               HorizontalAlignment="Center" />
+                </StackPanel>
+            </Border>
+
+            <!-- Main Message -->
+            <TextBlock Text="No models loaded"
+                       Classes="h2"
+                       HorizontalAlignment="Center"
+                       Margin="0,0,0,12" />
+
+            <!-- Description -->
+            <TextBlock Text="Load an ONNX model to inspect its structure, generate inference forms, and expose a REST API."
+                       Classes="body-secondary"
+                       HorizontalAlignment="Center"
+                       TextAlignment="Center"
+                       TextWrapping="Wrap"
+                       Margin="0,0,0,24" />
+
+            <!-- Open Model Button -->
+            <Button Content="Open Model"
+                    Classes="primary large"
+                    HorizontalAlignment="Center"
+                    Command="{Binding OpenModelCommand}"
+                    Margin="0,0,0,16" />
+
+            <!-- Drag and Drop hint -->
+            <Border Classes="drag-zone"
+                    BorderBrush="{DynamicResource BorderBrush}"
+                    BorderThickness="2"
+                    CornerRadius="8"
+                    Padding="16"
+                    Margin="0,0,0,24">
+                <TextBlock Text="Or drag and drop an .onnx file here"
+                           Classes="body-secondary"
+                           HorizontalAlignment="Center" />
+            </Border>
+
+            <!-- Footer Links -->
+            <StackPanel Orientation="Horizontal"
+                        Spacing="8"
+                        HorizontalAlignment="Center">
+                <Button Content="Learn More"
+                        Classes="secondary"
+                        Command="{Binding LearnMoreCommand}" />
+                <Button Content="View Examples"
+                        Classes="secondary"
+                        Command="{Binding ViewExamplesCommand}" />
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+
+    <UserControl.Styles>
+        <Style Selector="Border.drag-zone:pointerover">
+            <Setter Property="Background" Value="{DynamicResource SurfaceElevatedBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}"/>
+        </Style>
+    </UserControl.Styles>
+</UserControl>

@@ -1,0 +1,423 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             x:Class="ONNXStudio.Mocks.Views.Screens.ModelInspectorView">
+
+    <UserControl.Styles>
+        <Style Selector="Button.graph-node">
+            <Setter Property="Background" Value="{DynamicResource SurfaceElevatedBrush}"/>
+            <Setter Property="BorderBrush" Value="{Binding ColorHex, Converter={StaticResource StringToBrushConverter}}"/>
+            <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="Margin" Value="4"/>
+            <Setter Property="FontFamily" Value="{DynamicResource CodeFontFamily}"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+            <Setter Property="MinWidth" Value="60"/>
+        </Style>
+        <Style Selector="Button.graph-node:pointerover">
+            <Setter Property="BorderThickness" Value="3"/>
+        </Style>
+        <Style Selector="TextBlock.graph-arrow">
+            <Setter Property="Foreground" Value="{DynamicResource TextTertiaryBrush}"/>
+            <Setter Property="FontFamily" Value="{DynamicResource CodeFontFamily}"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style Selector="TextBlock.graph-io">
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+            <Setter Property="FontFamily" Value="{DynamicResource CodeFontFamily}"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style Selector="Border.panel">
+            <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+        </Style>
+    </UserControl.Styles>
+
+    <DockPanel>
+        <!-- Toolbar -->
+        <Border DockPanel.Dock="Top"
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,0,0,1"
+                Padding="16,12">
+            <Grid ColumnDefinitions="Auto,Auto,1*,Auto,Auto,Auto">
+                <Button Grid.Column="0"
+                        Content="&#x2190; Back"
+                        Classes="secondary"
+                        Command="{Binding BackCommand}" />
+                <TextBlock Grid.Column="1"
+                           Text="{Binding Model.Name}"
+                           Classes="h2"
+                           VerticalAlignment="Center"
+                           Margin="16,0,0,0" />
+                <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="4">
+                    <Button Content="Inspect"
+                            Classes="tab-active" />
+                    <Button Content="Inference"
+                            Classes="secondary"
+                            Command="{Binding SwitchToInferenceCommand}" />
+                    <Button Content="API"
+                            Classes="secondary"
+                            Command="{Binding SwitchToApiCommand}" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Metadata Bar (Bottom) -->
+        <Border DockPanel.Dock="Bottom"
+                Background="{DynamicResource SurfaceElevatedBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="16,8">
+            <TextBlock Text="{Binding MetadataDisplay}"
+                       Classes="body-small"
+                       Foreground="{DynamicResource TextSecondaryBrush}" />
+        </Border>
+
+        <!-- View mode toggle: Graph / Structure -->
+        <Border DockPanel.Dock="Top"
+                Background="{DynamicResource BackgroundBrush}"
+                Padding="16,8">
+            <StackPanel Orientation="Horizontal" Spacing="4">
+                <Button Content="Graph"
+                        Classes="small secondary"
+                        Command="{Binding ShowGraphViewCommand}"
+                        IsVisible="{Binding ShowStructure}"/>
+                <Button Content="Graph"
+                        Classes="small tab-active"
+                        IsVisible="{Binding ShowGraph}"/>
+                <Button Content="Structure &amp; Parameters"
+                        Classes="small secondary"
+                        Command="{Binding ShowStructureViewCommand}"
+                        IsVisible="{Binding ShowGraph}"/>
+                <Button Content="Structure &amp; Parameters"
+                        Classes="small tab-active"
+                        IsVisible="{Binding ShowStructure}"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Main Content: Graph + Sidebar -->
+        <Grid ColumnDefinitions="1*,280"
+              IsVisible="{Binding ShowGraph}">
+
+            <!-- Graph Visualization (Left) -->
+            <Grid Grid.Column="0"
+                  RowDefinitions="1*,Auto">
+                <Border Grid.Row="0"
+                        Classes="panel"
+                        BorderThickness="0,0,1,0"
+                        CornerRadius="0"
+                        Margin="16,16,8,16">
+                    <ScrollViewer>
+                        <StackPanel Margin="16">
+                            <!-- Model inputs -->
+                            <ItemsControl ItemsSource="{Binding Graph.Inputs}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,2">
+                                            <TextBlock Text="IN "
+                                                       Classes="graph-io"
+                                                       Foreground="{DynamicResource SuccessBrush}"
+                                                       FontWeight="Bold" />
+                                            <TextBlock Text="{Binding Name}" Classes="graph-io" />
+                                            <TextBlock Text="{Binding DataType, StringFormat=' : {0}'}"
+                                                       Classes="graph-io"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}" />
+                                            <TextBlock Text="&#x2192;" Classes="graph-arrow" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <!-- Node flow (mock graph) -->
+                            <WrapPanel Margin="0,16,0,16">
+                                <ItemsControl ItemsSource="{Binding FilteredNodes}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal">
+                                                <Button Classes="graph-node"
+                                                        Content="{Binding OpType}"
+                                                        ToolTip.Tip="{Binding Name}"
+                                                        Command="{Binding $parent[ItemsControl].DataContext.SelectNodeCommand}"
+                                                        CommandParameter="{Binding}" />
+                                                <TextBlock Text="&#x2192;"
+                                                           Classes="graph-arrow"
+                                                           Margin="0,0,4,0" />
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </WrapPanel>
+
+                            <!-- Model outputs -->
+                            <ItemsControl ItemsSource="{Binding Graph.Outputs}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,2">
+                                            <TextBlock Text="OUT "
+                                                       Classes="graph-io"
+                                                       Foreground="{DynamicResource WarningBrush}"
+                                                       FontWeight="Bold" />
+                                            <TextBlock Text="{Binding Name}" Classes="graph-io" />
+                                            <TextBlock Text="{Binding DataType, StringFormat=' : {0}'}"
+                                                       Classes="graph-io"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <!-- Empty state -->
+                            <TextBlock Text="No nodes match the current search / filter."
+                                       IsVisible="{Binding FilteredNodes.Count, Converter={StaticResource IntToVisibilityConverter}, ConverterParameter=Invert}"
+                                       Classes="body-secondary"
+                                       HorizontalAlignment="Center"
+                                       Margin="0,16,0,0" />
+                        </StackPanel>
+                    </ScrollViewer>
+                </Border>
+
+                <!-- Graph Controls -->
+                <Border Grid.Row="1"
+                        Background="{DynamicResource SurfaceElevatedBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="0,1,0,0"
+                        Padding="16,8"
+                        Margin="16,0,8,16">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Content="-"
+                                Classes="small secondary"
+                                Command="{Binding ZoomOutCommand}" />
+                        <TextBlock Text="{Binding ZoomLevel, StringFormat='Zoom: {0:P0}'}"
+                                   VerticalAlignment="Center"
+                                   Classes="body-small" />
+                        <Button Content="+"
+                                Classes="small secondary"
+                                Command="{Binding ZoomInCommand}" />
+                        <Button Content="Fit"
+                                Classes="small secondary"
+                                Command="{Binding FitToViewCommand}" />
+                        <Button Content="Reset"
+                                Classes="small secondary"
+                                Command="{Binding ResetViewCommand}" />
+                        <TextBox PlaceholderText="Search nodes..."
+                                 Text="{Binding SearchText, Mode=TwoWay}"
+                                 MinWidth="160"
+                                 KeyUp="OnSearchKeyUp" />
+                        <ComboBox ItemsSource="{Binding FilterTypes}"
+                                  SelectedItem="{Binding FilterType, Mode=TwoWay}"
+                                  SelectionChanged="OnFilterTypeChanged"
+                                  MinWidth="120" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- Node Details Panel (Right) -->
+            <Border Grid.Column="1"
+                    Background="{DynamicResource SurfaceBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}"
+                    BorderThickness="1,0,0,0"
+                    Margin="8,16,16,16">
+                <ScrollViewer>
+                    <StackPanel Margin="16" Spacing="12">
+                        <TextBlock Text="Node Details" Classes="h3" />
+
+                        <!-- Empty state -->
+                        <TextBlock IsVisible="{Binding ShowNodeDetails, Converter={StaticResource BoolToInverseVisibilityConverter}}"
+                                   Text="Click on a node to see details"
+                                   Classes="body-secondary"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,24,0,0" />
+
+                        <!-- Selected node details -->
+                        <Border IsVisible="{Binding ShowNodeDetails}"
+                                Background="{DynamicResource SurfaceElevatedBrush}"
+                                CornerRadius="6"
+                                Padding="12">
+                            <StackPanel Spacing="8">
+                                <TextBlock Text="{Binding SelectedNode.OpType}"
+                                           Classes="h4"
+                                           Foreground="{Binding SelectedNode.ColorHex, Converter={StaticResource StringToBrushConverter}}" />
+                                <TextBlock Text="{Binding SelectedNode.Name}"
+                                           Classes="code" />
+
+                                <Expander Header="Attributes" IsExpanded="True">
+                                    <ItemsControl ItemsSource="{Binding SelectedNode.Attributes}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <StackPanel Margin="0,2">
+                                                    <TextBlock Text="{Binding Key}" Classes="body-small" FontWeight="SemiBold" />
+                                                    <TextBlock Text="{Binding Value}"
+                                                               Classes="body-small"
+                                                               Foreground="{DynamicResource TextSecondaryBrush}" />
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </Expander>
+
+                                <Expander Header="Inputs" IsExpanded="True">
+                                    <ItemsControl ItemsSource="{Binding SelectedNode.Inputs}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <StackPanel Margin="0,2">
+                                                    <TextBlock Text="{Binding Name}" Classes="body-small" />
+                                                    <TextBlock Text="{Binding ShapeDisplay}" 
+                                                               Classes="code" />
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </Expander>
+
+                                <Expander Header="Outputs" IsExpanded="True">
+                                    <ItemsControl ItemsSource="{Binding SelectedNode.Outputs}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <StackPanel Margin="0,2">
+                                                    <TextBlock Text="{Binding Name}" Classes="body-small" />
+                                                    <TextBlock Text="{Binding ShapeDisplay}"
+                                                               Classes="code" />
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </Expander>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+
+        <!-- Structure & Parameters (graph-free exploration) -->
+        <Grid ColumnDefinitions="1*,360"
+              IsVisible="{Binding ShowStructure}"
+              Margin="16,8">
+
+            <!-- Left: pipeline tree -->
+            <Border Grid.Column="0" Classes="panel">
+                <DockPanel>
+                    <Border DockPanel.Dock="Top"
+                            Background="{DynamicResource SurfaceElevatedBrush}"
+                            CornerRadius="6"
+                            Padding="12"
+                            Margin="12,12,12,8">
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="Pipeline structure"
+                                       Classes="h3"/>
+                            <TextBlock Text="{Binding StructureSummary}"
+                                       Classes="body-small"
+                                       TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Border>
+                    <ScrollViewer>
+                        <TreeView ItemsSource="{Binding Components}"
+                                  SelectedItem="{Binding SelectedComponent, Mode=TwoWay}"
+                                  Background="Transparent"
+                                  BorderThickness="0"
+                                  Margin="8,0,8,12">
+                            <TreeView.ItemTemplate>
+                                <TreeDataTemplate ItemsSource="{Binding Children}">
+                                    <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,2">
+                                        <TextBlock Text="{Binding Icon}" FontSize="14"/>
+                                        <TextBlock Text="{Binding Header}" Classes="body"/>
+                                        <Border CornerRadius="4"
+                                                Padding="6,1"
+                                                Background="{DynamicResource SurfaceElevatedBrush}"
+                                                VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Kind}"
+                                                       FontSize="10"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                        </Border>
+                                        <TextBlock Text="{Binding ParameterCount, StringFormat='{}{0} params'}"
+                                                   Classes="body-small"
+                                                   VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </TreeDataTemplate>
+                            </TreeView.ItemTemplate>
+                        </TreeView>
+                    </ScrollViewer>
+                </DockPanel>
+            </Border>
+
+            <!-- Right: component parameters + feature importances -->
+            <Border Grid.Column="1" Classes="panel">
+                <ScrollViewer>
+                    <StackPanel Margin="16" Spacing="12">
+                        <TextBlock Text="Parameters" Classes="h3"/>
+
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="{Binding SelectedComponent.Icon}" FontSize="20"/>
+                            <TextBlock Text="{Binding SelectedComponent.Header}" Classes="h4"/>
+                        </StackPanel>
+                        <TextBlock Text="{Binding SelectedComponent.Description}"
+                                   Classes="body-secondary"
+                                   TextWrapping="Wrap"/>
+
+                        <!-- Parameter table -->
+                        <ItemsControl ItemsSource="{Binding SelectedComponent.Parameters}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid ColumnDefinitions="180,1*"
+                                          Margin="0,3">
+                                        <TextBlock Grid.Column="0"
+                                                   Text="{Binding Key}"
+                                                   Classes="label"
+                                                   VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="1"
+                                                   Text="{Binding Value}"
+                                                   Classes="code"
+                                                   VerticalAlignment="Center"
+                                                   TextWrapping="Wrap"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <!-- Feature importances -->
+                        <GroupBox Header="Feature importances"
+                                  IsVisible="{Binding HasFeatureImportances}">
+                            <ItemsControl ItemsSource="{Binding FeatureImportances}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal"
+                                                    Spacing="8"
+                                                    Margin="0,3">
+                                            <TextBlock Text="{Binding Feature}"
+                                                       Classes="body-small"
+                                                       Width="100"
+                                                       VerticalAlignment="Center"/>
+                                            <ProgressBar Value="{Binding Importance, Converter={StaticResource DoubleToPercentConverter}}"
+                                                         Maximum="100"
+                                                         Width="220"
+                                                         Height="8"
+                                                         Foreground="{DynamicResource SuccessBrush}"/>
+                                            <TextBlock Text="{Binding PercentDisplay}"
+                                                       Classes="body-small"
+                                                       Width="56"
+                                                       VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </GroupBox>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+    </DockPanel>
+</UserControl>

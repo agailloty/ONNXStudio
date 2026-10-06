@@ -1,0 +1,30 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="using:ONNXStudio.Mocks"
+        xmlns:controls="using:ONNXStudio.Mocks.Controls"
+        mc:Ignorable="d"
+        x:Class="ONNXStudio.Mocks.Views.MainWindow"
+        Icon="/Assets/avalonia-logo.ico"
+        Title="ONNX Studio"
+        Width="1280" Height="800"
+        MinWidth="1024" MinHeight="640"
+        WindowStartupLocation="CenterScreen">
+
+    <Design.DataContext>
+        <local:MainViewModel />
+    </Design.DataContext>
+
+    <Grid RowDefinitions="1*,Auto">
+        <!-- Main Content Area -->
+        <ContentControl Grid.Row="0"
+                        Content="{Binding CurrentViewModel}"
+                        ContentTemplate="{StaticResource ViewLocator}" />
+
+        <!-- Status Bar -->
+        <controls:StatusBar Grid.Row="1"
+                            Status="{Binding StatusMessage}"
+                            Info="ONNX Studio v1.0.0" />
+    </Grid>
+</Window>

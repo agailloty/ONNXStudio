@@ -1,0 +1,274 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             x:Class="ONNXStudio.Mocks.Views.Screens.ApiConfigView">
+
+    <UserControl.Styles>
+        <Style Selector="Border.panel">
+            <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Margin" Value="4"/>
+        </Style>
+        <Style Selector="TextBlock.mapping-source">
+            <Setter Property="FontFamily" Value="{DynamicResource CodeFontFamily}"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+    </UserControl.Styles>
+
+    <DockPanel>
+        <!-- Toolbar -->
+        <Border DockPanel.Dock="Top"
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,0,0,1"
+                Padding="16,12">
+            <Grid ColumnDefinitions="Auto,Auto,1*,Auto,Auto,Auto,Auto">
+                <Button Grid.Column="0"
+                        Content="&#x2190; Back"
+                        Classes="secondary"
+                        Command="{Binding BackCommand}" />
+                <TextBlock Grid.Column="1"
+                           Text="{Binding ModelName}"
+                           Classes="h2"
+                           VerticalAlignment="Center"
+                           Margin="16,0,0,0" />
+                <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="4">
+                    <Button Content="Inspect"
+                            Classes="secondary"
+                            Command="{Binding SwitchToInspectorCommand}" />
+                    <Button Content="Inference"
+                            Classes="secondary"
+                            Command="{Binding SwitchToInferenceCommand}" />
+                    <Button Content="API"
+                            Classes="tab-active" />
+                </StackPanel>
+                <Button Grid.Column="4"
+                        Content="Test in Sandbox"
+                        Classes="primary"
+                        Command="{Binding SwitchToSandboxCommand}"
+                        Margin="16,0,0,0" />
+                <Button Grid.Column="5"
+                        Content="Save"
+                        Classes="secondary"
+                        Command="{Binding SaveConfigurationCommand}"
+                        Margin="8,0,0,0" />
+            </Grid>
+        </Border>
+
+        <!-- Status strip -->
+        <Border DockPanel.Dock="Bottom"
+                Background="{DynamicResource SurfaceElevatedBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="16,6">
+            <TextBlock Text="{Binding StatusMessage}" Classes="body-small"/>
+        </Border>
+
+        <!-- Main content -->
+        <Grid ColumnDefinitions="270,1*,340"
+              Margin="12">
+
+            <!-- Left: model inputs -->
+            <Border Grid.Column="0" Classes="panel">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top"
+                               Text="Model inputs"
+                               Classes="h3"
+                               Margin="12,12,12,4" />
+                    <Border DockPanel.Dock="Top"
+                            Background="{DynamicResource SurfaceElevatedBrush}"
+                            CornerRadius="6"
+                            Padding="12"
+                            Margin="12,4,12,8">
+                        <TextBlock Text="Payload fields below are mapped onto these tensors at inference time."
+                                   Classes="body-small"
+                                   TextWrapping="Wrap"/>
+                    </Border>
+                    <ScrollViewer>
+                        <ItemsControl ItemsSource="{Binding Graph.Inputs}" Margin="8">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="{DynamicResource SurfaceElevatedBrush}"
+                                            CornerRadius="6"
+                                            Padding="10"
+                                            Margin="0,4">
+                                        <StackPanel Spacing="4">
+                                            <TextBlock Text="{Binding Name}" Classes="code"/>
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <TextBlock Text="{Binding DataType}"
+                                                           Classes="body-small"
+                                                           Foreground="{DynamicResource PrimaryBrush}"/>
+                                                <TextBlock Text="{Binding ShapeDisplay, StringFormat='shape: [{0}]'}"
+                                                           Classes="body-small"/>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </DockPanel>
+            </Border>
+
+            <!-- Center: payload mapping -->
+            <Border Grid.Column="1" Classes="panel">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top"
+                               Text="Payload mapping (JSON field &#x2192; model input)"
+                               Classes="h3"
+                               Margin="12,12,12,4" />
+
+                    <!-- Endpoint settings -->
+                    <Border DockPanel.Dock="Top"
+                            Background="{DynamicResource SurfaceElevatedBrush}"
+                            CornerRadius="6"
+                            Padding="12"
+                            Margin="12,4,12,8">
+                        <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,1*,Auto,Auto">
+                            <Border Grid.Column="0"
+                                    CornerRadius="4"
+                                    Padding="8,4"
+                                    VerticalAlignment="Center"
+                                    Background="{DynamicResource PrimaryBrush}">
+                                <TextBlock Text="POST"
+                                           FontFamily="{DynamicResource CodeFontFamily}"
+                                           FontWeight="Bold"
+                                           Foreground="{DynamicResource OnPrimaryBrush}"/>
+                            </Border>
+                            <TextBlock Grid.Column="1"
+                                       Text="http://localhost:"
+                                       Classes="body"
+                                       VerticalAlignment="Center"
+                                       Margin="8,0,0,0"/>
+                            <TextBox Grid.Column="2"
+                                     Text="{Binding ApiPort, Mode=TwoWay}"
+                                     Width="80"/>
+                            <TextBox Grid.Column="3"
+                                     Text="{Binding EndpointPath, Mode=TwoWay}"
+                                     MinWidth="280"
+                                     FontFamily="{DynamicResource CodeFontFamily}"/>
+                            <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0,0,0">
+                                <ToggleSwitch IsChecked="{Binding IsEndpointEnabled, Mode=TwoWay}"/>
+                                <TextBlock Text="endpoint enabled"
+                                           Classes="body-small"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- Mapping rows -->
+                    <ScrollViewer>
+                        <StackPanel Margin="12,0">
+                            <ItemsControl ItemsSource="{Binding Mappings}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Background="{DynamicResource SurfaceElevatedBrush}"
+                                                BorderBrush="{DynamicResource BorderBrush}"
+                                                BorderThickness="1"
+                                                CornerRadius="6"
+                                                Padding="12"
+                                                Margin="0,4">
+                                            <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="220,1*,Auto">
+                                                <!-- Row 0: source -> json field + type + required -->
+                                                <TextBlock Grid.Row="0" Grid.Column="0"
+                                                           Text="{Binding SourceDisplay}"
+                                                           Classes="mapping-source"/>
+                                                <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                                                    <TextBox Text="{Binding JsonName, Mode=TwoWay}"
+                                                             MinWidth="140"
+                                                             FontFamily="{DynamicResource CodeFontFamily}"/>
+                                                    <ComboBox ItemsSource="{Binding $parent[ItemsControl].DataContext.JsonTypes}"
+                                                              SelectedItem="{Binding JsonType, Mode=TwoWay}"
+                                                              Width="110"/>
+                                                    <CheckBox Content="required"
+                                                              IsChecked="{Binding IsRequired, Mode=TwoWay}"
+                                                              VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                                <Button Grid.Row="0" Grid.Column="2"
+                                                        Content="Remove"
+                                                        Classes="small danger"
+                                                        Command="{Binding $parent[ItemsControl].DataContext.RemoveMappingCommand}"
+                                                        CommandParameter="{Binding}"/>
+
+                                                <!-- Row 1: description -->
+                                                <TextBox Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3"
+                                                         Text="{Binding Description, Mode=TwoWay}"
+                                                         PlaceholderText="Description shown in the generated schema..."
+                                                         Margin="0,8,0,0"/>
+
+                                                <!-- Row 2: default + sample -->
+                                                <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3"
+                                                            Orientation="Horizontal"
+                                                            Spacing="8"
+                                                            Margin="0,8,0,0">
+                                                    <TextBlock Text="default:" Classes="label" VerticalAlignment="Center"/>
+                                                    <TextBox Text="{Binding DefaultValue, Mode=TwoWay}"
+                                                             Width="110"/>
+                                                    <TextBlock Text="sample:" Classes="label" VerticalAlignment="Center"/>
+                                                    <TextBox Text="{Binding SampleValue, Mode=TwoWay}"
+                                                             Width="110"/>
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <Button Content="+ Add mapping"
+                                    Classes="secondary"
+                                    Command="{Binding AddMappingCommand}"
+                                    HorizontalAlignment="Left"
+                                    Margin="0,8"/>
+                        </StackPanel>
+                    </ScrollViewer>
+                </DockPanel>
+            </Border>
+
+            <!-- Right: live previews -->
+            <Border Grid.Column="2" Classes="panel">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top"
+                               Text="Generated schema (live)"
+                               Classes="h3"
+                               Margin="12,12,12,4" />
+                    <ScrollViewer>
+                        <StackPanel Margin="12,4,12,12" Spacing="12">
+                            <GroupBox Header="JSON Schema">
+                                <TextBox Text="{Binding JsonSchema, Mode=OneWay}"
+                                         IsReadOnly="True"
+                                         AcceptsReturn="True"
+                                         FontFamily="{DynamicResource CodeFontFamily}"
+                                         FontSize="12"
+                                         MinHeight="260"
+                                         MaxHeight="340"/>
+                            </GroupBox>
+                            <GroupBox Header="Example payload">
+                                <TextBox Text="{Binding ExamplePayload, Mode=OneWay}"
+                                         IsReadOnly="True"
+                                         AcceptsReturn="True"
+                                         FontFamily="{DynamicResource CodeFontFamily}"
+                                         FontSize="12"
+                                         MinHeight="160"
+                                         MaxHeight="200"/>
+                            </GroupBox>
+                            <GroupBox Header="cURL preview">
+                                <TextBox Text="{Binding CurlPreview, Mode=OneWay}"
+                                         IsReadOnly="True"
+                                         AcceptsReturn="True"
+                                         FontFamily="{DynamicResource CodeFontFamily}"
+                                         FontSize="12"
+                                         MinHeight="80"/>
+                            </GroupBox>
+                        </StackPanel>
+                    </ScrollViewer>
+                </DockPanel>
+            </Border>
+        </Grid>
+    </DockPanel>
+</UserControl>

@@ -1,0 +1,152 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             x:Class="ONNXStudio.Mocks.Views.Screens.SettingsView">
+
+    <DockPanel>
+        <!-- Toolbar -->
+        <Border DockPanel.Dock="Top"
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,0,0,1"
+                Padding="16,12">
+            <Grid ColumnDefinitions="Auto,1*,Auto">
+                <Button Grid.Column="0"
+                        Content="&#x2190; Back"
+                        Classes="secondary"
+                        Command="{Binding BackCommand}" />
+                <TextBlock Grid.Column="1"
+                           Text="Settings"
+                           Classes="h2"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center" />
+                <Button Grid.Column="2"
+                        Content="Save"
+                        Classes="primary"
+                        Command="{Binding SaveCommand}" />
+            </Grid>
+        </Border>
+
+        <!-- Content -->
+        <ScrollViewer>
+            <StackPanel Spacing="16"
+                        MaxWidth="720"
+                        HorizontalAlignment="Center"
+                        Margin="16">
+
+                <!-- General Section -->
+                <GroupBox Header="General">
+                    <StackPanel Spacing="12">
+                        <Grid ColumnDefinitions="200,1*">
+                            <TextBlock Grid.Column="0" Text="Theme:" Classes="body" VerticalAlignment="Center" />
+                            <ComboBox Grid.Column="1"
+                                      ItemsSource="{Binding Themes}"
+                                      SelectedItem="{Binding Theme, Mode=TwoWay}"
+                                      HorizontalAlignment="Left"
+                                      Width="220" />
+                        </Grid>
+                        <Grid ColumnDefinitions="200,1*">
+                            <TextBlock Grid.Column="0" Text="Language:" Classes="body" VerticalAlignment="Center" />
+                            <ComboBox Grid.Column="1"
+                                      ItemsSource="{Binding Languages}"
+                                      SelectedItem="{Binding Language, Mode=TwoWay}"
+                                      HorizontalAlignment="Left"
+                                      Width="220" />
+                        </Grid>
+                        <Grid ColumnDefinitions="200,1*">
+                            <TextBlock Grid.Column="0" Text="Startup:" Classes="body" VerticalAlignment="Center" />
+                            <ComboBox Grid.Column="1"
+                                      ItemsSource="{Binding StartupActions}"
+                                      SelectedItem="{Binding StartupAction, Mode=TwoWay}"
+                                      HorizontalAlignment="Left"
+                                      Width="220" />
+                        </Grid>
+                    </StackPanel>
+                </GroupBox>
+
+                <!-- API Server Section -->
+                <GroupBox Header="API Server">
+                    <StackPanel Spacing="12">
+                        <Grid ColumnDefinitions="200,1*">
+                            <TextBlock Grid.Column="0" Text="Port:" Classes="body" VerticalAlignment="Center" />
+                            <TextBox Grid.Column="1"
+                                     Text="{Binding ApiPort, Mode=TwoWay}"
+                                     HorizontalAlignment="Left"
+                                     Width="120" />
+                        </Grid>
+                        <Grid ColumnDefinitions="200,1*">
+                            <TextBlock Grid.Column="0" Text="Max Request Size:" Classes="body" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                <TextBox Text="{Binding MaxRequestSizeMb, Mode=TwoWay}"
+                                         Width="120" />
+                                <TextBlock Text="MB" Classes="body" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Grid>
+                        <Grid ColumnDefinitions="200,1*">
+                            <TextBlock Grid.Column="0" Text="CORS:" Classes="body" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                <ToggleSwitch IsChecked="{Binding AllowAllOrigins, Mode=TwoWay}" />
+                                <TextBlock Text="Allow all origins"
+                                           Classes="body-secondary"
+                                           VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </GroupBox>
+
+                <!-- Advanced Section -->
+                <GroupBox Header="Advanced">
+                    <StackPanel Spacing="12">
+                        <Grid ColumnDefinitions="200,1*">
+                            <TextBlock Grid.Column="0" Text="Log Level:" Classes="body" VerticalAlignment="Center" />
+                            <ComboBox Grid.Column="1"
+                                      ItemsSource="{Binding LogLevels}"
+                                      SelectedItem="{Binding LogLevel, Mode=TwoWay}"
+                                      HorizontalAlignment="Left"
+                                      Width="220" />
+                        </Grid>
+                        <Grid ColumnDefinitions="200,1*">
+                            <TextBlock Grid.Column="0" Text="Cache Size:" Classes="body" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                <TextBox Text="{Binding CacheSize, Mode=TwoWay}"
+                                         Width="120" />
+                                <TextBlock Text="models" Classes="body" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Grid>
+                        <Button Content="Clear Cache"
+                                Classes="secondary"
+                                Command="{Binding ClearCacheCommand}"
+                                HorizontalAlignment="Left" />
+                    </StackPanel>
+                </GroupBox>
+
+                <!-- About Section -->
+                <GroupBox Header="About">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="{Binding Version, StringFormat='ONNX Studio v{0}'}"
+                                   Classes="h3" />
+                        <TextBlock Text="Built by data scientists, for data scientists"
+                                   Classes="body-secondary" />
+                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,8,0,0">
+                            <Button Content="View License"
+                                    Classes="secondary small"
+                                    Command="{Binding ViewLicenseCommand}" />
+                            <Button Content="View Source"
+                                    Classes="secondary small"
+                                    Command="{Binding ViewSourceCommand}" />
+                        </StackPanel>
+                    </StackPanel>
+                </GroupBox>
+
+                <!-- Status Message -->
+                <TextBlock Text="{Binding StatusMessage}"
+                           IsVisible="{Binding StatusMessage, Converter={StaticResource StringToVisibilityConverter}}"
+                           Foreground="{DynamicResource SuccessBrush}"
+                           Classes="body"
+                           HorizontalAlignment="Center" />
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>

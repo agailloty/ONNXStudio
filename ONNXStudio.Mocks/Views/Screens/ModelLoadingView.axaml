@@ -1,0 +1,88 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:controls="using:ONNXStudio.Mocks.Controls"
+             mc:Ignorable="d"
+             x:Class="ONNXStudio.Mocks.Views.Screens.ModelLoadingView">
+
+    <DockPanel>
+        <!-- Top Bar -->
+        <Border DockPanel.Dock="Top"
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="0,0,0,1"
+                Padding="16,12">
+            <Grid ColumnDefinitions="Auto,1*,Auto">
+                <Button Grid.Column="0"
+                        Content="&#x2190; Back"
+                        Classes="secondary"
+                        Command="{Binding CancelCommand}" />
+                <TextBlock Grid.Column="1"
+                           Text="{Binding ModelName}"
+                           Classes="h2"
+                           VerticalAlignment="Center"
+                           HorizontalAlignment="Center" />
+                <Button Grid.Column="2"
+                        Content="Cancel"
+                        Classes="secondary"
+                        Command="{Binding CancelCommand}" />
+            </Grid>
+        </Border>
+
+        <!-- Main Content -->
+        <StackPanel VerticalAlignment="Center"
+                    HorizontalAlignment="Center"
+                    Width="480"
+                    Spacing="16">
+
+            <controls:Spinner IsVisible="{Binding ShowError, Converter={StaticResource BoolToInverseVisibilityConverter}}"
+                              HorizontalAlignment="Center" />
+
+            <TextBlock Text="{Binding ModelName, StringFormat='Loading {0}...'}"
+                       Classes="h2"
+                       HorizontalAlignment="Center"
+                       IsVisible="{Binding ShowError, Converter={StaticResource BoolToInverseVisibilityConverter}}" />
+
+            <!-- Progress Bar -->
+            <ProgressBar Value="{Binding ProgressValue}"
+                         Maximum="100"
+                         Height="8"
+                         IsVisible="{Binding ShowError, Converter={StaticResource BoolToInverseVisibilityConverter}}" />
+
+            <!-- Progress Text -->
+            <TextBlock Text="{Binding ProgressText}"
+                       Classes="h3"
+                       Foreground="{DynamicResource PrimaryBrush}"
+                       HorizontalAlignment="Center"
+                       IsVisible="{Binding ShowError, Converter={StaticResource BoolToInverseVisibilityConverter}}" />
+
+            <!-- Status Message -->
+            <TextBlock Text="{Binding StatusMessage}"
+                       Classes="body-secondary"
+                       HorizontalAlignment="Center"
+                       IsVisible="{Binding ShowError, Converter={StaticResource BoolToInverseVisibilityConverter}}" />
+
+            <!-- Error Message -->
+            <Border IsVisible="{Binding ShowError}"
+                    Background="{DynamicResource SurfaceElevatedBrush}"
+                    BorderBrush="{DynamicResource ErrorBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Padding="16">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="Error Loading Model"
+                               Classes="h3"
+                               Foreground="{DynamicResource ErrorBrush}" />
+                    <TextBlock Text="{Binding ErrorMessage}"
+                               Classes="body"
+                               TextWrapping="Wrap" />
+                    <Button Content="Retry"
+                            Classes="primary"
+                            Command="{Binding RetryCommand}"
+                            HorizontalAlignment="Right" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </DockPanel>
+</UserControl>
