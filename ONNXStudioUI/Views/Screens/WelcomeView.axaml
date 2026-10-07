@@ -53,8 +53,8 @@
                                   Width="32" Height="32"
                                   Foreground="{DynamicResource PrimaryBrush}"/>
                         <StackPanel VerticalAlignment="Center" Spacing="2">
-                            <TextBlock Text="Drop your .onnx file here" Classes="h4"/>
-                            <TextBlock Text="Anywhere in the window - several files can be dropped at once"
+                            <TextBlock Text="Drop your .onnx, .joblib or .pkl file here" Classes="h4"/>
+                            <TextBlock Text="Anywhere in the window - several files can be dropped at once. joblib / pickle models need a Python runtime (Settings)."
                                        Classes="body-small"/>
                         </StackPanel>
                     </StackPanel>

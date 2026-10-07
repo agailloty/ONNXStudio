@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ONNXStudio.Api;
 using ONNXStudio.Core.Models;
+using ONNXStudio.Core.Python;
 using ONNXStudio.Core.Services;
 using ONNXStudioUI.Services;
 
@@ -19,6 +20,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
 {
     private readonly IServiceProvider _services;
     private readonly IModelRegistry _registry;
+    private readonly IPythonModelRegistry _pythonRegistry;
     private readonly IGraphAnalysisService _graphService;
     private readonly IToastService _toast;
     private readonly IThemeService _theme;
@@ -41,12 +43,21 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
 
     private readonly ApiServerHost _api;
     private bool _syncingExplorer;
+    private ViewModels.Screens.PythonRuntimeViewModel? _pythonRuntime;
 
     /// <summary>Screens currently open in the editor area.</summary>
     public ObservableCollection<EditorTab> Tabs { get; } = new();
 
     /// <summary>Loaded models and their screens, shown in the side bar.</summary>
     public ObservableCollection<ExplorerNode> ExplorerNodes { get; } = new();
+
+    /// <summary>Opened joblib / pickle models, shown in their own side bar section.</summary>
+    public ObservableCollection<PythonModel> PythonModels { get; } = new();
+
+    public bool HasPythonModels => PythonModels.Count > 0;
+
+    [ObservableProperty]
+    private PythonModel? _selectedPythonModel;
 
     public bool IsDashboardActive => CurrentViewModel is ViewModels.Screens.DashboardViewModel;
 
@@ -65,6 +76,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     public MainWindowViewModel(
         IServiceProvider services,
         IModelRegistry registry,
+        IPythonModelRegistry pythonRegistry,
         IGraphAnalysisService graphService,
         IToastService toast,
         IThemeService theme,
@@ -72,6 +84,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     {
         _services = services;
         _registry = registry;
+        _pythonRegistry = pythonRegistry;
         _graphService = graphService;
         _toast = toast;
         _theme = theme;
@@ -81,6 +94,8 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         _api.StateChanged += OnApiStateChanged;
         _registry.ModelAdded += OnModelAdded;
         _registry.ModelRemoved += OnModelRemoved;
+        _pythonRegistry.ModelAdded += OnPythonModelAdded;
+        _pythonRegistry.ModelRemoved += OnPythonModelRemoved;
         _toast.ToastChanged += OnToastChanged;
 
         RefreshModels();
@@ -117,8 +132,16 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             _services.GetRequiredService<IThemeService>(),
             _services.GetRequiredService<IToastService>(),
             _services.GetRequiredService<ONNXStudio.Api.ApiServerHost>(),
-            _services.GetRequiredService<SettingsStore>());
+            _services.GetRequiredService<SettingsStore>(),
+            PythonRuntime);
+        _ = PythonRuntime.RefreshAsync();
     }
+
+    /// <summary>Shared so an installation keeps running (and reporting) while the user leaves the settings.</summary>
+    private ViewModels.Screens.PythonRuntimeViewModel PythonRuntime => _pythonRuntime ??= new ViewModels.Screens.PythonRuntimeViewModel(
+        _services.GetRequiredService<IPythonRuntimeService>(),
+        _services.GetRequiredService<IFilePickerService>(),
+        _toast);
 
     /// <summary>
     /// Sets the current screen directly (used by the model load coordinator).
@@ -206,6 +229,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         "playground" => "IconPlay",
         "apiconfig" => "IconApi",
         "sandbox" => "IconSend",
+        "pymodel" => "IconTerminal",
         _ => "IconBox"
     };
 
@@ -227,6 +251,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         }
 
         SyncExplorerSelection(key);
+        SyncPythonSelection(key);
     }
 
     // ----- model explorer -----
@@ -278,6 +303,91 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         var models = Models.Count == 1 ? "1 model" : $"{Models.Count} models";
         var api = _api.IsRunning ? $"API localhost:{_api.Port}" : "API stopped";
         StatusDetails = $"{models}   {api}";
+    }
+
+    // ----- Python models -----
+
+    partial void OnSelectedPythonModelChanged(PythonModel? value)
+    {
+        if (_syncingExplorer || value == null) return;
+        ShowPythonModel(value);
+    }
+
+    private void SyncPythonSelection(string? key)
+    {
+        _syncingExplorer = true;
+        try
+        {
+            var id = key != null && key.StartsWith("pymodel:", StringComparison.Ordinal) ? key["pymodel:".Length..] : null;
+            SelectedPythonModel = id == null ? null : PythonModels.FirstOrDefault(m => m.Id == id);
+        }
+        finally { _syncingExplorer = false; }
+    }
+
+    /// <summary>Registers a joblib / pickle file and opens its screen.</summary>
+    public void OpenPythonModel(string path)
+    {
+        if (!File.Exists(path))
+        {
+            ShowToast($"The file '{Path.GetFileName(path)}' does not exist.");
+            return;
+        }
+        ShowPythonModel(_pythonRegistry.Register(path));
+    }
+
+    public void ShowPythonModel(PythonModel model)
+    {
+        CurrentViewModel = GetOrCreateScreen("pymodel:" + model.Id,
+            () => new ViewModels.Screens.PythonModelViewModel(
+                this,
+                _services.GetRequiredService<IPythonModelService>(),
+                _services.GetRequiredService<IPythonRuntimeService>(),
+                _services.GetRequiredService<IFilePickerService>(),
+                _toast,
+                () => _services.GetService<IModelLoadCoordinator>(),
+                model));
+    }
+
+    [RelayCommand]
+    private void UnloadPythonModel(PythonModel? model)
+    {
+        if (model == null) return;
+        _pythonRegistry.Unload(model.Id);
+        ShowToast($"Model '{model.Name}' closed");
+    }
+
+    private void OnPythonModelAdded(object? sender, PythonModel model)
+    {
+        RunOnUi(() =>
+        {
+            PythonModels.Add(model);
+            OnPropertyChanged(nameof(HasPythonModels));
+            StatusMessage = $"Python model '{model.Name}' opened";
+        });
+    }
+
+    private void OnPythonModelRemoved(object? sender, PythonModel model)
+    {
+        RunOnUi(() =>
+        {
+            PythonModels.Remove(model);
+            OnPropertyChanged(nameof(HasPythonModels));
+            var key = "pymodel:" + model.Id;
+            if (_screenCache.Remove(key, out var screen))
+            {
+                if (Tabs.FirstOrDefault(t => t.Key == key) is { } tab) Tabs.Remove(tab);
+                var wasCurrent = ReferenceEquals(CurrentViewModel, screen);
+                if (screen is IDisposable disposable) disposable.Dispose();
+                if (wasCurrent) ShowDashboard();
+            }
+        });
+    }
+
+    // Runs inline on the UI thread so a screen opened right after registration finds its model in the list.
+    private static void RunOnUi(Action action)
+    {
+        if (Avalonia.Threading.Dispatcher.UIThread.CheckAccess()) action();
+        else Avalonia.Threading.Dispatcher.UIThread.Post(action);
     }
 
     // ----- model screens (cached per model so state is preserved) -----
@@ -386,6 +496,8 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     {
         _registry.ModelAdded -= OnModelAdded;
         _registry.ModelRemoved -= OnModelRemoved;
+        _pythonRegistry.ModelAdded -= OnPythonModelAdded;
+        _pythonRegistry.ModelRemoved -= OnPythonModelRemoved;
         _toast.ToastChanged -= OnToastChanged;
         _api.StateChanged -= OnApiStateChanged;
         foreach (var screen in _screenCache.Values.OfType<IDisposable>()) screen.Dispose();

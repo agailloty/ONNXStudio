@@ -14,6 +14,7 @@ serve **ONNX models** — built as a modular monolith on **Avalonia**,
 | Local inference (US-004) | Real ONNX Runtime execution with input validation, LRU session cache, typed outputs (scalars, vectors, top classes) |
 | REST API (US-005) | Embedded Kestrel server (`/models`, `/models/{id}`, `/models/{id}/schema`, `/models/{id}/predict`, `/health`) with CORS and JSON schema/cURL previews |
 | API sandbox (US-006) | Real HTTP requests against the embedded server, status/timing, history with re-run |
+| Python models | Open scikit-learn models saved with joblib / pickle (`.joblib`, `.pkl`, `.pickle`...), inspect them (class, pipeline steps, features, classes), run inference (`predict`, `predict_proba`, `decision_function`, `transform`) on typed rows, and convert them to ONNX with skl2onnx (opset capped to what the installed packages support, optional validation against scikit-learn). Needs a Python runtime, see [Python support](#python-support) |
 | UX | VS Code style workbench (activity bar, model explorer side bar, editor tabs, status bar), Dark+/Light+ themes, toasts, model screens cached per model. Shortcuts: Ctrl+O open, Ctrl+B side bar, Ctrl+W close tab, Ctrl+, settings |
 
 ## Solution layout (modular monolith)
@@ -25,13 +26,15 @@ ONNXStudio.slnx
 │   ├── Services/               # ModelLoader, ModelRegistry, InferenceService,
 │   │                           # InferenceSessionManager (LRU), FormGeneration,
 │   │                           # GraphAnalysis
+│   ├── Python/                 # Python runtime discovery / installation, worker
+│   │                           # script (joblib / pickle inference, skl2onnx)
 │   └── Utilities/              # OnnxProtoParser (dependency-free protobuf)
 ├── ONNXStudio.Api/             # ASP.NET Core Minimal APIs (library)
 │   ├── Endpoints/              # /health, /models..., /predict
 │   ├── Payloads/               # JSON payload parsing -> validated tensors
 │   └── ApiServerHost.cs        # Embedded Kestrel lifecycle
 ├── ONNXStudioUI/               # Avalonia executable (UI module, hosts the API)
-└── tests/ONNXStudio.Core.Tests # 51 unit + integration tests (real .onnx fixtures)
+└── tests/ONNXStudio.Core.Tests # unit + integration tests (real .onnx fixtures)
 ```
 
 Communication between modules is direct .NET method calls through interfaces,
@@ -44,6 +47,34 @@ dotnet build ONNXStudio.slnx
 dotnet run --project ONNXStudioUI            # GUI, opens maximized
 dotnet run --project ONNXStudioUI -- --model path/to/model.onnx
 ```
+
+## Python support
+
+ONNX Studio embeds **no** Python and no Python library. joblib / pickle models run in
+a separate Python process (`onnxstudio_worker.py`, written to
+`LocalApplicationData/ONNXStudio/python/worker`), so you choose where Python comes
+from in **Settings > Python runtime**:
+
+| Option | What happens |
+|--------|--------------|
+| Install the ONNX Studio runtime | Downloads a standalone CPython 3.12 ([python-build-standalone](https://github.com/astral-sh/python-build-standalone), SHA-256 verified) into `LocalApplicationData/ONNXStudio/python/runtime`, then `pip install`s numpy, scipy, pandas, scikit-learn, joblib, skl2onnx, onnx and onnxruntime (binary wheels only). Nothing is installed system-wide and the user site-packages are ignored. Needs an internet connection once. |
+| Use a Python already on the machine | Interpreters found through the `py` launcher, `PATH`, `VIRTUAL_ENV` and `CONDA_PREFIX` are listed with the packages they contain. Pick one; ONNX Studio never installs packages into it. |
+| Point to your own Python | Browse to an interpreter or to a virtual / conda environment folder. |
+
+With the automatic choice the managed runtime is used when installed, otherwise the
+first system interpreter that has scikit-learn, numpy and joblib. Inference needs
+`numpy`, `scikit-learn` and `joblib`; conversion also needs `skl2onnx` and `onnx`
+(`onnxruntime` enables the post-conversion check). Models that need other packages
+(xgboost, lightgbm...) work as long as the selected interpreter has them.
+
+**Security:** unpickling executes code contained in the file. Nothing runs until you
+tick *I trust this file* on the model screen; only open files you created or trust.
+
+Typical flow: open a `.joblib` / `.pkl` (Ctrl+O, drag-and-drop or CLI), tick the trust
+box, *Load model*, then *Run* on rows such as `5.1, 3.5, 1.4, 0.2` (add a header line for
+models trained on named columns; text pipelines take one text per line), or *Convert*
+to write an `.onnx` file that is opened in the studio. Converted models target opset 18
+at most, which is what the studio can open.
 
 ## Release builds
 
@@ -58,6 +89,10 @@ and platform details.
 ```bash
 dotnet test tests/ONNXStudio.Core.Tests
 ```
+
+The Python integration tests (real download and installation of Python, scikit-learn
+and skl2onnx, several hundred MB) are skipped unless `ONNXSTUDIO_PYTHON_INTEGRATION=1`
+is set; set `ONNXSTUDIO_TEST_PYTHON_DIR` to reuse an installation between runs.
 
 The suite covers model loading (valid/invalid files, opset rejection), graph
 extraction (attributes, dynamic shapes, tensor-flow edges), real inference on

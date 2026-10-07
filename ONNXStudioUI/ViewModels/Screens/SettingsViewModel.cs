@@ -29,13 +29,18 @@ public partial class SettingsViewModel : ViewModelBase
     public IReadOnlyList<AppTheme> Themes { get; } = new[] { AppTheme.Light, AppTheme.Dark, AppTheme.System };
     public string AppVersion => "1.0.0";
 
-    public SettingsViewModel(MainWindowViewModel shell, IThemeService theme, IToastService toast, ApiServerHost apiHost, SettingsStore store)
+    /// <summary>Python runtime section (null when Python support is not wired, e.g. in design time).</summary>
+    public PythonRuntimeViewModel? Python { get; }
+
+    public SettingsViewModel(MainWindowViewModel shell, IThemeService theme, IToastService toast, ApiServerHost apiHost, SettingsStore store,
+        PythonRuntimeViewModel? python = null)
     {
         _shell = shell;
         _theme = theme;
         _toast = toast;
         _apiHost = apiHost;
         _store = store;
+        Python = python;
         Title = "Settings";
 
         SelectedTheme = _theme.Current;

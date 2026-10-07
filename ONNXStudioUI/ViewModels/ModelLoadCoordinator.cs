@@ -1,3 +1,4 @@
+using ONNXStudio.Core.Python;
 using ONNXStudio.Core.Services;
 using ONNXStudioUI.Services;
 using ONNXStudioUI.ViewModels.Screens;
@@ -102,10 +103,15 @@ public sealed class ModelLoadCoordinator : IModelLoadCoordinator
 
     public async Task LoadManyAsync(IEnumerable<string> filePaths)
     {
+        var paths = filePaths.ToList();
+
+        // joblib / pickle files open their own screen instead of the ONNX loading flow.
+        foreach (var path in paths.Where(PythonModel.IsPythonModelFile)) _shell.OpenPythonModel(path);
+
         await _loadGate.WaitAsync();
         try
         {
-            foreach (var path in filePaths)
+            foreach (var path in paths.Where(p => !PythonModel.IsPythonModelFile(p)))
             {
                 if (!await LoadCoreAsync(path)) break;
             }

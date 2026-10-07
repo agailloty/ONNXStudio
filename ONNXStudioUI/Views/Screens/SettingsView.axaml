@@ -50,6 +50,70 @@
                     </StackPanel>
                 </GroupBox>
 
+                <GroupBox Header="Python runtime (scikit-learn, ONNX conversion)" IsVisible="{Binding Python, Converter={StaticResource NullToBoolConverter}}">
+                    <StackPanel Spacing="12" DataContext="{Binding Python}" x:DataType="vm:PythonRuntimeViewModel">
+                        <TextBlock Classes="body-small" TextWrapping="Wrap"
+                                   Text="ONNX Studio ships no Python. To open joblib / pickle models and convert them to ONNX, let it install its own Python and packages in its data folder, or use a Python you already have."/>
+                        <TextBlock Text="{Binding Status}" Classes="body" TextWrapping="Wrap"/>
+
+                        <TextBlock Text="Interpreter in use" Classes="label"/>
+                        <ComboBox ItemsSource="{Binding Interpreters}"
+                                  SelectedItem="{Binding SelectedInterpreter, Mode=TwoWay}"
+                                  IsEnabled="{Binding !IsBusy}"
+                                  HorizontalAlignment="Stretch">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate x:DataType="vm:PythonInterpreterItem">
+                                    <TextBlock Text="{Binding Display}" TextTrimming="CharacterEllipsis"/>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                        <TextBlock Text="{Binding SelectedDetails}" Classes="body-small" TextWrapping="Wrap"
+                                   IsVisible="{Binding SelectedDetails, Converter={StaticResource NullToBoolConverter}}"/>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button Content="Detect again" Classes="secondary small"
+                                    Command="{Binding RefreshCommand}" IsEnabled="{Binding !IsBusy}"/>
+                        </StackPanel>
+
+                        <TextBlock Text="Use an existing Python" Classes="label"/>
+                        <Grid ColumnDefinitions="1*,Auto,Auto,Auto">
+                            <TextBox Text="{Binding CustomPath, Mode=TwoWay}"
+                                     PlaceholderText="python.exe / python3, or the folder of a virtual environment"/>
+                            <Button Grid.Column="1" Content="Use" Classes="secondary small" Margin="8,0,0,0"
+                                    Command="{Binding UseCustomCommand}" IsEnabled="{Binding !IsBusy}"/>
+                            <Button Grid.Column="2" Content="File..." Classes="secondary small" Margin="8,0,0,0"
+                                    Command="{Binding BrowseInterpreterCommand}" IsEnabled="{Binding !IsBusy}"/>
+                            <Button Grid.Column="3" Content="Folder..." Classes="secondary small" Margin="8,0,0,0"
+                                    Command="{Binding BrowseEnvironmentCommand}" IsEnabled="{Binding !IsBusy}"/>
+                        </Grid>
+
+                        <TextBlock Text="ONNX Studio runtime" Classes="label"/>
+                        <TextBlock Classes="body-small" TextWrapping="Wrap"
+                                   Text="Downloads a standalone CPython from github.com/astral-sh/python-build-standalone (checksum verified), then installs numpy, scipy, pandas, scikit-learn, joblib, skl2onnx, onnx and onnxruntime from PyPI. Nothing is installed system-wide."/>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button Classes="primary" Command="{Binding InstallPythonCommand}" IsEnabled="{Binding CanInstall}">
+                                <TextBlock Text="{Binding InstallPythonLabel}"/>
+                            </Button>
+                            <Button Classes="secondary" Content="Install / update packages"
+                                    Command="{Binding InstallPackagesCommand}" IsEnabled="{Binding CanInstallPackages}"/>
+                            <Button Classes="secondary" Content="Remove"
+                                    Command="{Binding RemoveManagedCommand}" IsEnabled="{Binding CanRemove}"/>
+                            <Button Classes="danger" Content="Cancel"
+                                    Command="{Binding CancelOperationCommand}" IsVisible="{Binding IsBusy}"/>
+                        </StackPanel>
+
+                        <StackPanel Spacing="4" IsVisible="{Binding ProgressMessage, Converter={StaticResource NullToBoolConverter}}">
+                            <ProgressBar Value="{Binding ProgressValue}" Maximum="100"
+                                         IsIndeterminate="{Binding IsProgressIndeterminate}"/>
+                            <TextBlock Text="{Binding ProgressMessage}" Classes="body-small" TextTrimming="CharacterEllipsis"/>
+                        </StackPanel>
+                        <TextBlock Text="{Binding Error}" Foreground="{DynamicResource ErrorBrush}" TextWrapping="Wrap"
+                                   IsVisible="{Binding Error, Converter={StaticResource NullToBoolConverter}}"/>
+                        <TextBox Text="{Binding Log, Mode=OneWay}" IsReadOnly="True" AcceptsReturn="True"
+                                 MaxHeight="160" FontFamily="Consolas, Menlo, monospace"
+                                 IsVisible="{Binding HasLog}"/>
+                    </StackPanel>
+                </GroupBox>
+
                 <GroupBox Header="About">
                     <StackPanel Spacing="8">
                         <TextBlock Text="{Binding AppVersion, StringFormat='ONNX Studio v{0}'}" Classes="h3"/>

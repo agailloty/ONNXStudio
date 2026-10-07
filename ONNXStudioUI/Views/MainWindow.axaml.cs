@@ -77,7 +77,8 @@ public partial class MainWindow : Window
     {
         foreach (var item in e.DataTransfer.Items)
             if (item.Formats.Contains(DataFormat.File) && item.TryGetRaw(DataFormat.File) is IStorageItem storage &&
-                storage.TryGetLocalPath() is string path && path.EndsWith(".onnx", StringComparison.OrdinalIgnoreCase))
+                storage.TryGetLocalPath() is string path &&
+                (path.EndsWith(".onnx", StringComparison.OrdinalIgnoreCase) || ONNXStudio.Core.Python.PythonModel.IsPythonModelFile(path)))
                 yield return path;
     }
 }

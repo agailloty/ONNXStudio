@@ -24,7 +24,7 @@ public static class UiTestSetup
     public static AppBuilder BuildAvaloniaApp() => AppBuilder.Configure<TestApplication>()
         .UseHeadless(new AvaloniaHeadlessPlatformOptions());
 
-    public static ServiceProvider Services(IModelLoader? loader = null)
+    public static ServiceProvider Services(IModelLoader? loader = null, Action<IServiceCollection>? configure = null)
     {
         var services = new ServiceCollection();
         services.AddLogging();
@@ -39,6 +39,7 @@ public static class UiTestSetup
         services.AddTransient<WelcomeViewModel>();
         services.AddTransient<DashboardViewModel>();
         if (loader != null) services.AddSingleton(loader);
+        configure?.Invoke(services);
         var provider = services.BuildServiceProvider();
         provider.GetRequiredService<ApiServerHost>().RequestedPort = 0;
         return provider;
@@ -67,4 +68,7 @@ public sealed class TestPicker : IFilePickerService
     public Task<string?> PickModelFileAsync() => Task.FromResult<string?>(null);
     public Task<string[]> PickModelFilesAsync() => Task.FromResult(Array.Empty<string>());
     public Task<string?> PickImageFileAsync() => Task.FromResult<string?>(null);
+    public Task<string?> PickPythonInterpreterAsync() => Task.FromResult<string?>(null);
+    public Task<string?> PickFolderAsync(string title) => Task.FromResult<string?>(null);
+    public Task<string?> PickOnnxSavePathAsync(string suggestedFileName, string? initialDirectory) => Task.FromResult<string?>(null);
 }

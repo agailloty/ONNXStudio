@@ -73,7 +73,8 @@ public partial class App : Application
                 return args[i + 1];
             }
         }
-        return args.FirstOrDefault(a => a.EndsWith(".onnx", StringComparison.OrdinalIgnoreCase));
+        return args.FirstOrDefault(a => a.EndsWith(".onnx", StringComparison.OrdinalIgnoreCase)
+                                        || ONNXStudio.Core.Python.PythonModel.IsPythonModelFile(a));
     }
 
     private static ServiceProvider BuildServices()
