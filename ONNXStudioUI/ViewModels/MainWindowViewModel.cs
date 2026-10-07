@@ -51,7 +51,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     /// <summary>Loaded models and their screens, shown in the side bar.</summary>
     public ObservableCollection<ExplorerNode> ExplorerNodes { get; } = new();
 
-    /// <summary>Opened joblib / pickle models, shown in their own side bar section.</summary>
+    /// <summary>Joblib / pickle files awaiting import. Loaded models use the common explorer.</summary>
     public ObservableCollection<PythonModel> PythonModels { get; } = new();
 
     public bool HasPythonModels => PythonModels.Count > 0;
@@ -65,7 +65,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasModels))]
-    private ObservableCollection<OnnxModel> _models = new();
+    private ObservableCollection<IModel> _models = new();
 
     [ObservableProperty]
     private string _statusMessage = "Ready";
@@ -153,6 +153,13 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
 
     public bool HasModels => Models.Count > 0;
 
+    /// <summary>The loaded model stored at <paramref name="path"/>, if any.</summary>
+    public IModel? FindModel(string path)
+    {
+        var full = Path.GetFullPath(path);
+        return _registry.Models.FirstOrDefault(m => string.Equals(Path.GetFullPath(m.FilePath), full, StringComparison.OrdinalIgnoreCase));
+    }
+
     [RelayCommand]
     private void OpenSettings() => ShowSettings();
 
@@ -168,10 +175,11 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     }
 
     [RelayCommand]
-    private void UnloadModel(OnnxModel? model)
+    private void UnloadModel(IModel? model)
     {
         if (model == null) return;
         _registry.Unload(model.Id);
+        if (model is SklearnModel sklearn) _pythonRegistry.Unload(sklearn.File.Id);
         ShowToast($"Model '{model.Name}' unloaded");
     }
 
@@ -283,9 +291,9 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         finally { _syncingExplorer = false; }
     }
 
-    private static ExplorerNode BuildExplorerNode(OnnxModel model)
+    private static ExplorerNode BuildExplorerNode(IModel model)
     {
-        var node = new ExplorerNode("model:" + model.Id, model.Name, "IconBox", model, model.FileSizeDisplay) { IsExpanded = false };
+        var node = new ExplorerNode("model:" + model.Id, model.Name, model.Format == "ONNX" ? "IconBox" : "IconTerminal", model, model.FileSizeDisplay) { IsExpanded = false };
         node.Children.Add(new ExplorerNode("inspector:" + model.Id, "Inspector", "IconGraph", model));
         node.Children.Add(new ExplorerNode("playground:" + model.Id, "Inference", "IconPlay", model));
         node.Children.Add(new ExplorerNode("apiconfig:" + model.Id, "API", "IconApi", model));
@@ -327,6 +335,11 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     /// <summary>Registers a joblib / pickle file and opens its screen.</summary>
     public void OpenPythonModel(string path)
     {
+        if (FindModel(path) is { } loaded)
+        {
+            ShowInspector(loaded);
+            return;
+        }
         if (!File.Exists(path))
         {
             ShowToast($"The file '{Path.GetFileName(path)}' does not exist.");
@@ -370,6 +383,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     {
         RunOnUi(() =>
         {
+            if (FindModel(model.FilePath) is SklearnModel loaded) _registry.Unload(loaded.Id);
             PythonModels.Remove(model);
             OnPropertyChanged(nameof(HasPythonModels));
             var key = "pymodel:" + model.Id;
@@ -392,14 +406,14 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
 
     // ----- model screens (cached per model so state is preserved) -----
 
-    public void ShowInspector(OnnxModel model)
+    public void ShowInspector(IModel model)
     {
         CurrentViewModel = GetOrCreateScreen("inspector:" + model.Id,
             () => new ViewModels.Screens.ModelInspectorViewModel(this, _graphService, model));
     }
 
     // Playground navigation is wired in T9; API screens in T10.
-    public void ShowPlayground(OnnxModel model)
+    public void ShowPlayground(IModel model)
     {
         CurrentViewModel = GetOrCreateScreen("playground:" + model.Id,
             () => new ViewModels.Screens.InferencePlaygroundViewModel(
@@ -410,7 +424,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
                 model));
     }
 
-    public void ShowApiConfig(OnnxModel model)
+    public void ShowApiConfig(IModel model)
     {
         CurrentViewModel = GetOrCreateScreen("apiconfig:" + model.Id,
             () => new ViewModels.Screens.ApiConfigViewModel(
@@ -420,7 +434,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
                 model));
     }
 
-    public void ShowApiSandbox(OnnxModel model)
+    public void ShowApiSandbox(IModel model)
     {
         CurrentViewModel = GetOrCreateScreen("sandbox:" + model.Id,
             () => new ViewModels.Screens.ApiSandboxViewModel(
@@ -443,21 +457,26 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
 
     // ----- model registry projection -----
 
-    private void OnModelAdded(object? sender, OnnxModel model)
+    private void OnModelAdded(object? sender, IModel model)
     {
-        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        RunOnUi(() =>
         {
             Models.Add(model);
             ExplorerNodes.Add(BuildExplorerNode(model));
+            if (model is SklearnModel sklearn)
+            {
+                PythonModels.Remove(sklearn.File);
+                OnPropertyChanged(nameof(HasPythonModels));
+            }
             OnPropertyChanged(nameof(HasModels));
             UpdateStatusDetails();
             StatusMessage = $"Model '{model.Name}' loaded";
         });
     }
 
-    private void OnModelRemoved(object? sender, OnnxModel model)
+    private void OnModelRemoved(object? sender, IModel model)
     {
-        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        RunOnUi(() =>
         {
             Models.Remove(model);
             if (ExplorerNodes.FirstOrDefault(n => n.Model.Id == model.Id) is { } node) ExplorerNodes.Remove(node);
@@ -478,7 +497,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
 
     private void RefreshModels()
     {
-        Models = new ObservableCollection<OnnxModel>(_registry.Models);
+        Models = new ObservableCollection<IModel>(_registry.Models);
         ExplorerNodes.Clear();
         foreach (var model in Models) ExplorerNodes.Add(BuildExplorerNode(model));
     }

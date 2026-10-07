@@ -21,7 +21,7 @@ public static class PayloadParser
 {
     public static Result<IReadOnlyDictionary<string, InferenceInputValue>, string> Parse(
         JsonDocument document,
-        OnnxModel model)
+        IModel model)
     {
         var root = document.RootElement;
         if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty("inputs", out var inputsEl)

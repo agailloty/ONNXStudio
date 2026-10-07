@@ -191,7 +191,7 @@ public partial class InferencePlaygroundViewModel : ViewModelBase
 {
     private readonly MainWindowViewModel _shell;
     private readonly IInferenceService _inference;
-    private readonly OnnxModel _model;
+    private readonly IModel _model;
 
     [ObservableProperty]
     private ObservableCollection<PlaygroundFieldViewModel> _fields = new();
@@ -211,14 +211,14 @@ public partial class InferencePlaygroundViewModel : ViewModelBase
     [ObservableProperty]
     private string? _error;
 
-    public OnnxModel Model => _model;
+    public IModel Model => _model;
 
     public InferencePlaygroundViewModel(
         MainWindowViewModel shell,
         IInferenceService inference,
         IFormGenerationService formGeneration,
         IFilePickerService filePicker,
-        OnnxModel model)
+        IModel model)
     {
         _shell = shell;
         _inference = inference;

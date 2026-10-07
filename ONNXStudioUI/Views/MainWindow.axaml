@@ -134,7 +134,7 @@
                                             <TextBlock Grid.Column="1" Text="{Binding Name}"
                                                        VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                                             <TextBlock Grid.Column="2" Text="{Binding FileSizeDisplay}" Classes="caption"
-                                                       VerticalAlignment="Center" Margin="8,0,8,0"/>
+                                                       TextWrapping="NoWrap" VerticalAlignment="Center" Margin="8,0,8,0"/>
                                         </Grid>
                                     </DataTemplate>
                                 </ListBox.ItemTemplate>
@@ -175,6 +175,7 @@
                                     <TextBlock Grid.Column="2"
                                                Text="{Binding Detail}"
                                                Classes="caption"
+                                               TextWrapping="NoWrap"
                                                VerticalAlignment="Center"
                                                Margin="8,0,8,0"/>
                                 </Grid>

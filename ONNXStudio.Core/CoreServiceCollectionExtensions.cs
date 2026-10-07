@@ -41,6 +41,7 @@ public static class CoreServiceCollectionExtensions
         services.AddSingleton<IPythonRuntimeService, PythonRuntimeService>();
         services.AddSingleton<IPythonWorkerClient, PythonWorkerClient>();
         services.AddSingleton<IPythonModelService, PythonModelService>();
+        services.AddSingleton<IInferenceBackend, SklearnInferenceBackend>();
         services.AddSingleton<IPythonModelRegistry, PythonModelRegistry>();
         return services;
     }

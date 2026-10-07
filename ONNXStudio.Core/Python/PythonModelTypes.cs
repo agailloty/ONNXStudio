@@ -29,9 +29,25 @@ public sealed class PythonModelInfo
     public string? RuntimeSklearn { get; init; }
     public IReadOnlyList<string> Warnings { get; init; } = Array.Empty<string>();
 
+    /// <summary>Estimator tree (pipeline steps, transformers...) with hyper-parameters and learned attributes.</summary>
+    public PythonComponent? Components { get; init; }
+
+    /// <summary>Versions of the Python packages installed where the model was inspected (missing ones are omitted).</summary>
+    public IReadOnlyDictionary<string, string> Packages { get; init; } = new Dictionary<string, string>();
+
+    /// <summary>Key of the ONNX metadata_props entry written by ONNX Studio when it converts a scikit-learn model.</summary>
+    public const string OnnxMetadataKey = "onnxstudio.sklearn.info";
+
     public string Summary => IsPipeline
         ? $"Pipeline({string.Join(" -> ", Steps.Select(s => s.ClassName))})"
         : ClassName;
+
+    /// <summary>Reads the JSON stored in an ONNX file by the converter; null when it is not valid.</summary>
+    public static PythonModelInfo? TryParse(string json)
+    {
+        try { return JsonNode.Parse(json) is JsonObject root ? FromJson(root) : null; }
+        catch (Exception ex) when (ex is System.Text.Json.JsonException or InvalidOperationException or FormatException) { return null; }
+    }
 
     internal static PythonModelInfo FromJson(JsonObject json) => new()
     {
@@ -52,7 +68,11 @@ public sealed class PythonModelInfo
             .ToDictionary(p => p.Key, p => p.Value?.GetValue<string>() ?? string.Empty) ?? new Dictionary<string, string>(),
         TrainedWithSklearn = json["trainedWithSklearn"]?.GetValue<string>(),
         RuntimeSklearn = json["runtimeSklearn"]?.GetValue<string>(),
-        Warnings = Strings(json["warnings"]) ?? Array.Empty<string>()
+        Warnings = Strings(json["warnings"]) ?? Array.Empty<string>(),
+        Components = json["components"] is JsonObject components ? PythonComponent.FromJson(components) : null,
+        Packages = (json["packages"] as JsonObject)?
+            .Where(p => p.Value is JsonValue v && v.TryGetValue<string>(out _))
+            .ToDictionary(p => p.Key, p => p.Value!.GetValue<string>()) ?? new Dictionary<string, string>()
     };
 
     internal static string[]? Strings(JsonNode? node)
@@ -60,6 +80,68 @@ public sealed class PythonModelInfo
 }
 
 public sealed record PythonPipelineStep(string Name, string ClassName);
+
+/// <summary>A learned attribute (coef_, classes_, mean_...) of a fitted estimator: a bounded preview of its values.</summary>
+public sealed class PythonFittedAttribute
+{
+    public string Name { get; init; } = string.Empty;
+
+    /// <summary>scalar, array, sparse, dict, list or object.</summary>
+    public string Kind { get; init; } = "scalar";
+
+    public string? DType { get; init; }
+    public IReadOnlyList<int> Shape { get; init; } = Array.Empty<int>();
+
+    /// <summary>Number of values in the attribute (the preview in <see cref="Values"/> may be shorter).</summary>
+    public int Count { get; init; } = 1;
+
+    public IReadOnlyList<string> Values { get; init; } = Array.Empty<string>();
+    public string Summary { get; init; } = string.Empty;
+
+    public bool HasValues => Values.Count > 0;
+
+    internal static PythonFittedAttribute FromJson(JsonNode json) => new()
+    {
+        Name = json["name"]?.GetValue<string>() ?? string.Empty,
+        Kind = json["kind"]?.GetValue<string>() ?? "scalar",
+        DType = json["dtype"]?.GetValue<string>(),
+        Shape = (json["shape"] as JsonArray)?.Select(d => d?.GetValue<int>() ?? 0).ToArray() ?? Array.Empty<int>(),
+        Count = json["count"]?.GetValue<int>() ?? 1,
+        Values = (json["values"] as JsonArray)?.Select(PythonPredictionOutput.Format).ToArray() ?? Array.Empty<string>(),
+        Summary = json["summary"]?.GetValue<string>() ?? string.Empty
+    };
+}
+
+/// <summary>One estimator of the scikit-learn object graph (pipeline, step, transformer, model...).</summary>
+public sealed class PythonComponent
+{
+    public string Name { get; init; } = string.Empty;
+    public string ClassName { get; init; } = string.Empty;
+    public string Module { get; init; } = string.Empty;
+
+    /// <summary>Pipeline, Classifier, Regressor, Transformer, ColumnTransformer, FeatureUnion, Estimator or Passthrough.</summary>
+    public string Kind { get; init; } = "Estimator";
+
+    public string Description { get; init; } = string.Empty;
+    public IReadOnlyList<KeyValuePair<string, string>> Parameters { get; init; } = Array.Empty<KeyValuePair<string, string>>();
+    public IReadOnlyList<PythonFittedAttribute> Fitted { get; init; } = Array.Empty<PythonFittedAttribute>();
+    public IReadOnlyList<PythonComponent> Children { get; init; } = Array.Empty<PythonComponent>();
+
+    internal static PythonComponent FromJson(JsonObject json) => new()
+    {
+        Name = json["name"]?.GetValue<string>() ?? string.Empty,
+        ClassName = json["className"]?.GetValue<string>() ?? string.Empty,
+        Module = json["module"]?.GetValue<string>() ?? string.Empty,
+        Kind = json["kind"]?.GetValue<string>() ?? "Estimator",
+        Description = json["description"]?.GetValue<string>() ?? string.Empty,
+        Parameters = (json["parameters"] as JsonObject)?
+            .Select(p => KeyValuePair.Create(p.Key, p.Value is JsonValue v && v.TryGetValue<string>(out var s) ? s : p.Value?.ToJsonString() ?? string.Empty))
+            .ToArray() ?? Array.Empty<KeyValuePair<string, string>>(),
+        Fitted = (json["fitted"] as JsonArray)?.Where(f => f != null).Select(f => PythonFittedAttribute.FromJson(f!)).ToArray()
+                 ?? Array.Empty<PythonFittedAttribute>(),
+        Children = (json["children"] as JsonArray)?.OfType<JsonObject>().Select(FromJson).ToArray() ?? Array.Empty<PythonComponent>()
+    };
+}
 
 public sealed record PythonPredictionRequest(
     string ModelPath,
@@ -79,8 +161,12 @@ public sealed class PythonPredictionOutput
     /// <summary>One formatted entry per input row.</summary>
     public IReadOnlyList<string> Rows { get; }
 
-    public PythonPredictionOutput(string name, string dtype, IReadOnlyList<int> shape, bool truncated, IReadOnlyList<string> rows)
+    /// <summary>The values as sent by the worker (nested arrays), before formatting.</summary>
+    internal JsonNode? Raw { get; }
+
+    public PythonPredictionOutput(string name, string dtype, IReadOnlyList<int> shape, bool truncated, IReadOnlyList<string> rows, JsonNode? raw = null)
     {
+        Raw = raw;
         Name = name;
         DType = dtype;
         Shape = shape;
@@ -98,7 +184,8 @@ public sealed class PythonPredictionOutput
             json["dtype"]?.GetValue<string>() ?? "",
             (json["shape"] as JsonArray)?.Select(d => d!.GetValue<int>()).ToArray() ?? Array.Empty<int>(),
             json["truncated"]?.GetValue<bool>() ?? false,
-            rows);
+            rows,
+            json["values"]);
     }
 
     /// <summary>Compact text of a value: numbers use at most 6 significant digits.</summary>

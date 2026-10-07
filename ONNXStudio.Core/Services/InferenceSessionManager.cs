@@ -105,7 +105,7 @@ public sealed class InferenceSessionManager : IInferenceSessionManager
         else session.Dispose();
     }
 
-    private void OnModelRemoved(object? sender, Models.OnnxModel model) => Evict(model.FilePath);
+    private void OnModelRemoved(object? sender, Models.IModel model) => Evict(model.FilePath);
 
     public void Evict(string filePath)
     {

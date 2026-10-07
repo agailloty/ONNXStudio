@@ -25,7 +25,7 @@ public partial class WelcomeViewModel : ViewModelBase
         _loadCoordinator = loadCoordinator;
         _filePicker = filePicker;
         Title = "Welcome";
-        StatusMessage = "Drop an .onnx file or click Open Model";
+        StatusMessage = "Drop an .onnx, .joblib or .pkl file or click Open Model";
     }
 
     [RelayCommand]

@@ -185,7 +185,8 @@ public sealed class ModelLoader : IModelLoader
             graph: new ComputationGraph(nodes, edges),
             inputs: inputs,
             outputs: outputs,
-            initializers: initializers);
+            initializers: initializers,
+            metadata: raw.Metadata);
     }
 
     /// <summary>

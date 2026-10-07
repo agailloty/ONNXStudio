@@ -14,7 +14,7 @@
             <Grid ColumnDefinitions="Auto,Auto,1*,Auto">
                 <StackPanel Grid.Column="0" Grid.ColumnSpan="3" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                     <PathIcon Data="{StaticResource IconBox}" Width="14" Height="14" Foreground="{DynamicResource PrimaryBrush}"/>
-                    <TextBlock Text="{Binding Model.Name}" Classes="h4"/>
+                    <TextBlock Text="{Binding Model.Name}" Classes="h4" MaxWidth="360" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Model.Name}"/>
                     <TextBlock Text="&#x203A;" Classes="body-small"/>
                     <TextBlock Text="Inference" Classes="body-small"/>
                 </StackPanel>
@@ -52,7 +52,7 @@
                         </Button>
                     </Grid>
 
-                    <ScrollViewer>
+                    <ScrollViewer HorizontalScrollBarVisibility="Disabled">
                         <StackPanel Margin="16,0,16,16" Spacing="12">
                             <Button Content="Reset inputs" Command="{Binding ResetCommand}" IsEnabled="{Binding !IsRunning}"/>
                             <ItemsControl ItemsSource="{Binding Fields}" IsEnabled="{Binding !IsRunning}">
@@ -63,10 +63,10 @@
                                                 Padding="12"
                                                 Margin="0,4">
                                             <StackPanel Spacing="8">
-                                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <WrapPanel ItemSpacing="8">
                                                     <TextBlock Text="{Binding Label}" Classes="label" VerticalAlignment="Center"/>
                                                     <TextBlock Text="{Binding TypeDisplay}" Classes="body-small" VerticalAlignment="Center"/>
-                                                </StackPanel>
+                                                </WrapPanel>
 
                                                 <TextBox Text="{Binding ShapeText, Mode=TwoWay}"
                                                          IsVisible="{Binding HasDynamicShape}"
@@ -95,6 +95,7 @@
                                                     <TextBlock Text="{Binding ImagePath, StringFormat='Loaded: {0}'}"
                                                                Classes="body-small"
                                                                IsVisible="{Binding ImagePath, Converter={StaticResource NullToBoolConverter}}"
+                                                               TextWrapping="NoWrap"
                                                                TextTrimming="CharacterEllipsis"/>
                                                     <TextBlock Text="{Binding Description}" Classes="body-small"/>
                                                 </StackPanel>
@@ -135,7 +136,7 @@
                                    IsVisible="{Binding HasResult}"/>
                     </StackPanel>
 
-                    <ScrollViewer>
+                    <ScrollViewer HorizontalScrollBarVisibility="Disabled">
                         <StackPanel Margin="16,0,16,16" Spacing="12">
                             <TextBlock Text="Run inference to see results"
                                        Classes="body-secondary"
@@ -151,14 +152,15 @@
                                     <DataTemplate x:DataType="vm:OutputItemViewModel">
                                         <GroupBox Header="{Binding Name}">
                                             <StackPanel Spacing="8">
-                                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <WrapPanel ItemSpacing="8">
                                                     <TextBlock Text="{Binding Kind}" Classes="body-small"/>
                                                     <TextBlock Text="{Binding ShapeDisplay}" Classes="code"/>
-                                                </StackPanel>
+                                                </WrapPanel>
 
                                                 <!-- Scalar -->
                                                 <TextBlock Text="{Binding ScalarDisplay}"
                                                            Classes="h2"
+                                                           TextWrapping="Wrap"
                                                            Foreground="{DynamicResource PrimaryBrush}"
                                                            IsVisible="{Binding HasScalar}"/>
 

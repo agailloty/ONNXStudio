@@ -9,7 +9,7 @@ public static class ApiExamples
 {
     private static readonly JsonSerializerOptions Pretty = new() { WriteIndented = true };
 
-    public static string Payload(OnnxModel model)
+    public static string Payload(IModel model)
     {
         var inputs = new JsonObject();
         foreach (var input in model.Inputs)
@@ -37,7 +37,7 @@ public static class ApiExamples
         return array;
     }
 
-    public static string Schema(OnnxModel model)
+    public static string Schema(IModel model)
     {
         var properties = new JsonObject();
         var required = new JsonArray();

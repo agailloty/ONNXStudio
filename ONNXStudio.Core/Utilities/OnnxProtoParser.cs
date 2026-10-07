@@ -144,6 +144,7 @@ public static class OnnxProtoParser
     private const int FieldDocString = 6;
     private const int FieldGraph = 7;
     private const int FieldOpsetImport = 8;
+    private const int FieldMetadataProps = 14;
 
     // GraphProto fields
     private const int GraphNode = 1;
@@ -209,6 +210,7 @@ public static class OnnxProtoParser
         public long ModelVersion;
         public string DocString = string.Empty;
         public long OpsetVersion;
+        public Dictionary<string, string> Metadata = new();
         public List<RawNode> Nodes = new();
         public List<RawValueInfo> Inputs = new();
         public List<RawValueInfo> Outputs = new();
@@ -277,6 +279,10 @@ public static class OnnxProtoParser
                 case FieldGraph when wire == 2:
                     ParseGraph(reader.ReadLengthDelimited(), model);
                     break;
+                case FieldMetadataProps when wire == 2:
+                    var (key, value) = ParseStringEntry(reader.ReadLengthDelimited());
+                    if (key.Length > 0) model.Metadata[key] = value;
+                    break;
                 case FieldOpsetImport when wire == 2:
                     var opset = ParseOpset(reader.ReadLengthDelimited());
                     // The default (ONNX) domain opset is the relevant one
@@ -291,6 +297,24 @@ public static class OnnxProtoParser
             }
         }
         return model;
+    }
+
+    /// <summary>StringStringEntryProto: key = 1, value = 2.</summary>
+    private static (string Key, string Value) ParseStringEntry(ReadOnlySpan<byte> bytes)
+    {
+        string key = string.Empty, value = string.Empty;
+        var reader = new ProtoReader(bytes);
+        while (reader.HasMore)
+        {
+            var (field, wire) = reader.ReadFieldHeader();
+            switch (field)
+            {
+                case 1 when wire == 2: key = reader.ReadString(); break;
+                case 2 when wire == 2: value = reader.ReadString(); break;
+                default: reader.SkipField(wire); break;
+            }
+        }
+        return (key, value);
     }
 
     private static (string Domain, long Version) ParseOpset(ReadOnlySpan<byte> bytes)

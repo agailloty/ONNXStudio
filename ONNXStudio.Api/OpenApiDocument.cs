@@ -6,7 +6,7 @@ namespace ONNXStudio.Api;
 /// <summary>OpenAPI document derived from the models currently in the shared registry.</summary>
 public static class OpenApiDocument
 {
-    public static string Create(IReadOnlyList<OnnxModel> models)
+    public static string Create(IReadOnlyList<IModel> models)
     {
         var paths = new JsonObject
         {

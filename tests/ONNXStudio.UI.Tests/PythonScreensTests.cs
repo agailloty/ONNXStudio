@@ -4,6 +4,9 @@ using Avalonia.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using ONNXStudio.Core.Models;
 using ONNXStudio.Core.Python;
+using ONNXStudio.Core.Services;
+using ONNXStudioUI.Controls;
+using Avalonia.VisualTree;
 using ONNXStudioUI.Services;
 using ONNXStudioUI.ViewModels;
 using ONNXStudioUI.ViewModels.Screens;
@@ -98,7 +101,7 @@ internal sealed class FakePythonModelService : IPythonModelService
     {
         LastPrediction = request;
         if (Failure != null) return Task.FromResult(Result<PythonPredictionResult, PythonError>.Failure(Failure));
-        var output = new PythonPredictionOutput("predict", "int64", new[] { request.Rows.Count }, false, request.Rows.Select(_ => "1").ToArray());
+        var output = new PythonPredictionOutput("predict", "int64", new[] { request.Rows.Count }, false, request.Rows.Select(_ => "1").ToArray(), System.Text.Json.Nodes.JsonNode.Parse("[" + string.Join(",", request.Rows.Select(_ => "1")) + "]"));
         return Task.FromResult(Result<PythonPredictionResult, PythonError>.Success(
             new PythonPredictionResult(new[] { output }, new[] { "0", "1" }, request.Rows.Count, 5, Array.Empty<string>())));
     }
@@ -123,57 +126,9 @@ internal sealed class FakePythonModelService : IPythonModelService
 internal sealed class RecordingCoordinator : IModelLoadCoordinator
 {
     public List<string> Loaded { get; } = new();
+    public Task RegisterAsync(IModel model) => Task.CompletedTask;
     public Task LoadAsync(string filePath) { Loaded.Add(filePath); return Task.CompletedTask; }
     public Task LoadManyAsync(IEnumerable<string> filePaths) { Loaded.AddRange(filePaths); return Task.CompletedTask; }
-}
-
-public class PythonInputParserTests
-{
-    [Fact]
-    public void ParsesRowsWithAutomaticDelimiter()
-    {
-        var table = PythonInputParser.Parse("1, 2, 3\n4,5,6\r\n\n", hasHeader: false, singleTextColumn: false).Value!;
-        Assert.Null(table.Columns);
-        Assert.Equal(new[] { "1", "2", "3" }, table.Rows[0]);
-        Assert.Equal(new[] { "4", "5", "6" }, table.Rows[1]);
-
-        Assert.Equal(new[] { "1", "2" }, PythonInputParser.Parse("1;2", false, false).Value!.Rows[0]);
-        Assert.Equal(new[] { "1", "2" }, PythonInputParser.Parse("1\t2", false, false).Value!.Rows[0]);
-        Assert.Equal(new[] { "1", "2" }, PythonInputParser.Parse("1  2", false, false).Value!.Rows[0]);
-    }
-
-    [Fact]
-    public void ReadsHeaderAndQuotedCells()
-    {
-        var table = PythonInputParser.Parse("age,city\n30,\"Paris, FR\"\n41,\"say \"\"hi\"\"\"", hasHeader: true, singleTextColumn: false).Value!;
-
-        Assert.Equal(new[] { "age", "city" }, table.Columns);
-        Assert.Equal(new[] { "30", "Paris, FR" }, table.Rows[0]);
-        Assert.Equal(new[] { "41", "say \"hi\"" }, table.Rows[1]);
-    }
-
-    [Fact]
-    public void TextModelsKeepWholeLines()
-    {
-        var table = PythonInputParser.Parse("good, really good\nbad", false, singleTextColumn: true).Value!;
-
-        Assert.Equal(new[] { "good, really good" }, table.Rows[0]);
-        Assert.Equal(2, table.Rows.Count);
-        Assert.True(PythonInputParser.Parse("a\nb", true, true).IsFailure);
-    }
-
-    [Theory]
-    [InlineData("", false, "at least one row")]
-    [InlineData("1,2\n3", false, "Row 2 has 1 values")]
-    [InlineData("a,b,c\n1,2", true, "header has 3 columns")]
-    [InlineData("a,b", true, "only contains a header")]
-    public void ReportsMalformedInput(string text, bool header, string expected)
-    {
-        var result = PythonInputParser.Parse(text, header, false);
-
-        Assert.True(result.IsFailure);
-        Assert.Contains(expected, result.Error);
-    }
 }
 
 public class PythonScreensTests
@@ -252,21 +207,26 @@ public class PythonScreensTests
         Assert.False(screen.CanLoad);
         Assert.False(screen.IsLoaded);
 
+        await screen.LoadAsync();
+        Assert.Null(service.LastInspectTrust);
+
         screen.IsTrusted = true;
         Assert.True(screen.CanLoad);
         await screen.LoadAsync();
 
         Assert.True(service.LastInspectTrust);
         Assert.True(screen.IsLoaded);
-        Assert.True(screen.CanRun && screen.CanConvert);
+        Assert.True(screen.CanConvert);
         Assert.Equal("RandomForestClassifier", screen.SummaryText);
         Assert.Equal("4", screen.FeaturesText);
         Assert.Equal("0, 1, 2", screen.ClassesText);
         Assert.Contains("trained with scikit-learn 1.4.0, loaded with 1.9.1", screen.VersionText);
-        Assert.Equal("0, 0, 0, 0", screen.InputText);
-        Assert.False(screen.HasHeader);
         Assert.Single(screen.Warnings);
-        Assert.Contains("n_estimators = 10", screen.Parameters);
+        var inspector = Assert.IsType<ModelInspectorViewModel>(services.GetRequiredService<MainWindowViewModel>().CurrentViewModel);
+        Assert.Same(screen.LoadedModel, inspector.Model);
+        var root = Assert.Single(inspector.Components).Children[1];
+        Assert.Equal("10", root.Parameters.Single(p => p.Key == "n_estimators").Value);
+        Assert.Contains(root.Parameters, p => p.Key == "Trained with scikit-learn" && p.Value == "1.4.0");
     }
 
     [AvaloniaFact]
@@ -285,40 +245,125 @@ public class PythonScreensTests
     }
 
     [AvaloniaFact]
-    public async Task InferenceSendsParsedRowsAndShowsEveryOutput()
+    public async Task LoadedSklearnUsesTheSharedGraphStructureAndNavigation()
     {
-        await using var services = UiTestSetup.Services();
+        var service = new FakePythonModelService
+        {
+            Info = new PythonModelInfo
+            {
+                ClassName = "Pipeline", IsPipeline = true, FeatureCount = 2,
+                Steps = [new("scale_", "StandardScaler"), new("classifier", "LogisticRegression")],
+                Components = new PythonComponent
+                {
+                    Name = "pipeline", ClassName = "Pipeline", Kind = "Pipeline",
+                    Children =
+                    [
+                        new() { Name = "scale_", ClassName = "StandardScaler", Kind = "Transformer" },
+                        new()
+                        {
+                            Name = "classifier", ClassName = "LogisticRegression", Kind = "Classifier",
+                            Parameters = [new("C", "1.0")],
+                            Fitted = [new() { Name = "coef_", Kind = "array", Shape = [1, 2], Values = ["0.5", "1.5"], Count = 2 }]
+                        }
+                    ]
+                }
+            }
+        };
+        await using var services = UiTestSetup.Services(configure: s =>
+        {
+            s.AddSingleton<IPythonModelService>(service);
+            s.AddSingleton<IPythonRuntimeService>(new FakePythonRuntime());
+        });
+        var shell = services.GetRequiredService<MainWindowViewModel>();
+        var file = TempModel();
+        shell.OpenPythonModel(file);
+        var import = Assert.IsType<PythonModelViewModel>(shell.CurrentViewModel);
+        import.IsTrusted = true;
+        await import.LoadAsync();
+
+        var inspector = Assert.IsType<ModelInspectorViewModel>(shell.CurrentViewModel);
+        Assert.Same(import.LoadedModel, Assert.Single(shell.Models));
+        Assert.False(shell.HasPythonModels);
+        Assert.Same(inspector.Model, services.GetRequiredService<IModelRegistry>().GetById(inspector.Model.Id));
+        Assert.Equal("inspector:" + inspector.Model.Id, shell.SelectedExplorerNode!.Key);
+        Assert.Equal(2, inspector.Nodes.Count);
+        var edge = Assert.Single(inspector.Model.Graph.Edges);
+        Assert.Equal(inspector.Nodes[0].Node.Id, edge.FromNodeId);
+        Assert.Equal(inspector.Nodes[1].Node.Id, edge.ToNodeId);
+
+        var view = new ModelInspectorView { DataContext = inspector };
+        var window = new Window { Width = 1200, Height = 800, Content = view };
+        try
+        {
+            window.Show();
+            window.UpdateLayout();
+            var graph = Assert.Single(view.GetVisualDescendants().OfType<GraphViewer>());
+            Assert.Same(inspector.Model.Graph, graph.Graph);
+            inspector.ShowStructureViewCommand.Execute(null);
+            var classifier = Assert.Single(inspector.Components).Children[1].Children[1];
+            inspector.SelectedComponent = classifier;
+            window.UpdateLayout();
+            Assert.Equal("LogisticRegression", inspector.SelectedNode!.OpType);
+            Assert.Equal("1.0", classifier.Parameters.Single(p => p.Key == "C").Value);
+            Assert.Equal("[0.5, 1.5]", Assert.Single(classifier.Fitted).Value);
+            Assert.False(graph.IsEffectivelyVisible);
+            inspector.ShowGraphViewCommand.Execute(null);
+            window.UpdateLayout();
+            Assert.True(graph.IsEffectivelyVisible);
+            Assert.Same(inspector.SelectedNode, graph.SelectedNode);
+        }
+        finally { window.Close(); }
+
+        foreach (var (target, expected) in new (string, Type)[]
+                 { ("playground", typeof(InferencePlaygroundViewModel)), ("api", typeof(ApiConfigViewModel)), ("sandbox", typeof(ApiSandboxViewModel)) })
+        {
+            import.OpenModelCommand.Execute(target);
+            Assert.IsType(expected, shell.CurrentViewModel);
+        }
+        shell.OpenPythonModel(file);
+        Assert.Same(inspector, shell.CurrentViewModel);
+        Assert.Single(shell.Models);
+        shell.UnloadModelCommand.Execute(inspector.Model);
+        Assert.Empty(shell.Models);
+        Assert.Empty(shell.ExplorerNodes);
+        Assert.DoesNotContain(shell.Tabs, t => t.Key.EndsWith(":" + inspector.Model.Id));
+    }
+
+    [AvaloniaFact]
+    public async Task InferenceUsesTheSharedPlaygroundAndValidatesItsTensorInputs()
+    {
         var service = new FakePythonModelService
         {
             Info = new PythonModelInfo { ClassName = "Pipeline", FeatureNames = new[] { "a", "b" }, FeatureCount = 2, Methods = new[] { "predict" } }
         };
+        await using var services = UiTestSetup.Services(configure: s => s.AddSingleton<IPythonModelService>(service));
+        var shell = services.GetRequiredService<MainWindowViewModel>();
         var screen = CreateModelScreen(services, service, new FakePythonRuntime());
         screen.IsTrusted = true;
         await screen.LoadAsync();
 
-        Assert.True(screen.HasHeader);
-        Assert.Equal("a, b" + Environment.NewLine + "0, 0", screen.InputText);
+        screen.OpenModelCommand.Execute("playground");
+        var playground = Assert.IsType<InferencePlaygroundViewModel>(shell.CurrentViewModel);
+        var input = Assert.Single(playground.Fields);
+        Assert.Equal("0, 0", input.ValueText);
+        input.ValueText = "1,2,3,4";
+        await playground.RunInferenceCommand.ExecuteAsync(null);
 
-        screen.InputText = "a,b\n1,2\n3,4";
-        screen.SelectedMethod = "all";
-        await screen.RunAsync();
-
-        Assert.Null(screen.InferenceError);
-        Assert.True(screen.HasResult);
+        Assert.Null(playground.Error);
+        Assert.True(playground.HasResult);
         Assert.Equal(new[] { "a", "b" }, service.LastPrediction!.Columns);
         Assert.Equal(2, service.LastPrediction.Rows.Count);
+        Assert.Equal(new[] { "1", "2" }, service.LastPrediction.Rows[0]);
+        Assert.Equal(new[] { "3", "4" }, service.LastPrediction.Rows[1]);
         Assert.Equal("all", service.LastPrediction.Method);
         Assert.True(service.LastPrediction.TrustConfirmed);
-        var output = Assert.Single(screen.Outputs);
-        Assert.Equal(new[] { "1: 1", "2: 1" }, output.Lines);
-        Assert.Contains("2 row(s)", screen.ResultInfo);
+        Assert.Equal(new[] { "1", "1" }, Assert.Single(playground.Outputs).DisplayValues);
 
-        screen.HasHeader = false;
-        screen.InputText = "1,2\n3";
-        await screen.RunAsync();
-        Assert.Contains("Row", screen.InferenceError);
-        Assert.False(screen.HasResult);
-        Assert.Empty(screen.Outputs);
+        input.ValueText = "1,2,3";
+        await playground.RunInferenceCommand.ExecuteAsync(null);
+        Assert.NotNull(playground.Error);
+        Assert.False(playground.HasResult);
+        Assert.Empty(playground.Outputs);
     }
 
     [AvaloniaFact]
@@ -354,6 +399,39 @@ public class PythonScreensTests
         screen.LoadAfterConversion = false;
         await screen.ConvertAsync();
         Assert.Empty(coordinator.Loaded);
+    }
+
+    [AvaloniaFact]
+    public async Task ConvertedModelOpensInTheInspectorAndEveryOnnxScreenIsReachable()
+    {
+        await using var services = UiTestSetup.Services();
+        var shell = services.GetRequiredService<MainWindowViewModel>();
+        var output = Path.Combine(Path.GetDirectoryName(TempModel())!, "converted.onnx");
+        File.Copy(Path.Combine(AppContext.BaseDirectory, "fixtures", "sklearn_pipeline.onnx"), output);
+        var registered = services.GetRequiredService<IPythonModelRegistry>().Register(TempModel());
+        var screen = new PythonModelViewModel(shell, new FakePythonModelService(), new FakePythonRuntime(),
+            services.GetRequiredService<IFilePickerService>(), services.GetRequiredService<IToastService>(),
+            () => services.GetRequiredService<IModelLoadCoordinator>(), registered);
+        screen.IsTrusted = true;
+        await screen.LoadAsync();
+        screen.OutputPath = output;
+
+        await screen.ConvertAsync();
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Null(screen.ConversionError);
+        var inspector = Assert.IsType<ModelInspectorViewModel>(shell.CurrentViewModel);
+        Assert.Equal(output, inspector.Model.FilePath);
+        Assert.Equal(2, inspector.Components.Count);
+
+        shell.ShowPythonModel(registered);
+        foreach (var (target, expected) in new (string, Type)[]
+                 { ("playground", typeof(InferencePlaygroundViewModel)), ("api", typeof(ApiConfigViewModel)), ("sandbox", typeof(ApiSandboxViewModel)), ("inspector", typeof(ModelInspectorViewModel)) })
+        {
+            await screen.OpenConvertedCommand.ExecuteAsync(target);
+            Assert.IsType(expected, shell.CurrentViewModel);
+            shell.ShowPythonModel(registered);
+        }
     }
 
     [AvaloniaFact]
@@ -481,9 +559,12 @@ public class PythonScreensTests
             Show(new PythonModelView());
             screen.IsTrusted = true;
             await screen.LoadAsync();
-            await screen.RunAsync();
+            Show(new ModelInspectorView());
+            screen.OpenModelCommand.Execute("playground");
+            await ((InferencePlaygroundViewModel)shell.CurrentViewModel!).RunInferenceCommand.ExecuteAsync(null);
+            Show(new InferencePlaygroundView());
             await screen.ConvertAsync();
-            Show(new PythonModelView());
+            Show(new ModelInspectorView());
 
             shell.ShowSettings();
             Show(new SettingsView());

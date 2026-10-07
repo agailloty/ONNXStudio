@@ -14,7 +14,7 @@
             <Grid ColumnDefinitions="Auto,Auto,1*,Auto">
                 <StackPanel Grid.Column="0" Grid.ColumnSpan="3" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                     <PathIcon Data="{StaticResource IconBox}" Width="14" Height="14" Foreground="{DynamicResource PrimaryBrush}"/>
-                    <TextBlock Text="{Binding Model.Name}" Classes="h4"/>
+                    <TextBlock Text="{Binding Model.Name}" Classes="h4" MaxWidth="360" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Model.Name}"/>
                     <TextBlock Text="&#x203A;" Classes="body-small"/>
                     <TextBlock Text="API" Classes="body-small"/>
                 </StackPanel>
@@ -33,7 +33,7 @@
             </Grid>
         </Border>
 
-        <ScrollViewer>
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled">
             <StackPanel Margin="16" Spacing="12" MaxWidth="900">
 
                 <!-- Server control -->
@@ -76,14 +76,14 @@
                 <!-- Endpoint -->
                 <GroupBox Header="Predict endpoint">
                     <StackPanel Spacing="8">
-                        <TextBlock Text="{Binding FullEndpointUrl}" Classes="h4"/>
+                        <TextBlock Text="{Binding FullEndpointUrl}" Classes="h4" TextWrapping="Wrap"/>
                         <ItemsControl ItemsSource="{Binding Model.Inputs}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate x:DataType="models:TensorSchema">
-                                    <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,2">
+                                    <WrapPanel ItemSpacing="8" Margin="0,2">
                                         <TextBlock Text="{Binding Name}" Classes="code"/>
                                         <TextBlock Text="{Binding Display}" Classes="body-small"/>
-                                    </StackPanel>
+                                    </WrapPanel>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>

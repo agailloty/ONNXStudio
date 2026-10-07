@@ -30,7 +30,7 @@ public sealed partial class EditorTab : ObservableObject
 /// <summary>Node of the side bar model explorer: a loaded model or one of its screens.</summary>
 public sealed partial class ExplorerNode : ObservableObject
 {
-    public ExplorerNode(string key, string header, string icon, OnnxModel model, string? detail = null)
+    public ExplorerNode(string key, string header, string icon, IModel model, string? detail = null)
     {
         Key = key;
         Header = header;
@@ -48,7 +48,7 @@ public sealed partial class ExplorerNode : ObservableObject
 
     public string? Detail { get; }
 
-    public OnnxModel Model { get; }
+    public IModel Model { get; }
 
     public ObservableCollection<ExplorerNode> Children { get; } = new();
 

@@ -13,6 +13,9 @@ public sealed class GraphNode
     public IReadOnlyList<string> InputIds { get; }
     public IReadOnlyList<string> OutputIds { get; }
 
+    /// <summary>Display category chosen by the model type; when null it is derived from <see cref="OpType"/>.</summary>
+    public string? Category { get; }
+
     public GraphNode(
         string id,
         string name,
@@ -20,7 +23,8 @@ public sealed class GraphNode
         string domain,
         IReadOnlyDictionary<string, object> attributes,
         IReadOnlyList<string> inputIds,
-        IReadOnlyList<string> outputIds)
+        IReadOnlyList<string> outputIds,
+        string? category = null)
     {
         Id = id;
         Name = name;
@@ -29,6 +33,7 @@ public sealed class GraphNode
         Attributes = attributes;
         InputIds = inputIds;
         OutputIds = outputIds;
+        Category = category;
     }
 }
 

@@ -1,3 +1,4 @@
+using ONNXStudio.Core.Models;
 using ONNXStudio.Core.Python;
 using ONNXStudio.Core.Services;
 using ONNXStudioUI.Services;
@@ -14,6 +15,9 @@ public interface IModelLoadCoordinator
 {
     Task LoadAsync(string filePath);
     Task LoadManyAsync(IEnumerable<string> filePaths);
+
+    /// <summary>Registers a model that was loaded by another importer (scikit-learn...): API start and toast, like an ONNX load.</summary>
+    Task RegisterAsync(IModel model);
 }
 
 public sealed class ModelLoadCoordinator : IModelLoadCoordinator
@@ -40,6 +44,17 @@ public sealed class ModelLoadCoordinator : IModelLoadCoordinator
     }
 
     public Task LoadAsync(string filePath) => LoadManyAsync(new[] { filePath });
+
+    public async Task RegisterAsync(IModel model)
+    {
+        _registry.Register(model);
+        _toast.Show($"Model '{model.Name}' loaded");
+        try { await _apiHost.StartAsync(); }
+        catch (Exception)
+        {
+            _toast.Show("Model loaded. The API could not start; choose an available port in API settings.");
+        }
+    }
 
     private async Task<bool> LoadCoreAsync(string filePath)
     {

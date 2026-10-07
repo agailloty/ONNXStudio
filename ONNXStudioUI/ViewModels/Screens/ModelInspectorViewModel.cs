@@ -36,7 +36,7 @@ public partial class ModelInspectorViewModel : ViewModelBase
 {
     private readonly MainWindowViewModel _shell;
     private readonly IGraphAnalysisService _graphService;
-    private readonly OnnxModel _model;
+    private readonly IModel _model;
     private readonly Dictionary<string, NodeItemViewModel> _nodeItems;
     private readonly Dictionary<string, (int Inputs, int Outputs)> _dependencyCounts;
     private readonly Lazy<IReadOnlyList<ModelComponent>> _components;
@@ -50,7 +50,10 @@ public partial class ModelInspectorViewModel : ViewModelBase
 
     public bool ShowGraph => !ShowStructure;
     public IReadOnlyList<ModelComponent> Components => _components.Value;
-    public string StructureSummary => $"Producer: {Model.ProducerName} · Opset: {Model.OpsetVersion} · {Statistics.NodeCount:N0} nodes";
+    public string StructureSummary => string.Join(" · ", Model.Facts.Select(f => $"{f.Key}: {f.Value}").Append($"{Statistics.NodeCount:N0} nodes"));
+
+    public string WeightsHeader => Model.WeightsLabel;
+    public IReadOnlyList<string> Facts => Model.Facts.Select(f => $"{f.Key}: {f.Value}").ToArray();
 
     [ObservableProperty]
     private ObservableCollection<NodeItemViewModel> _nodes = new();
@@ -79,12 +82,12 @@ public partial class ModelInspectorViewModel : ViewModelBase
     [ObservableProperty]
     private string _dependencySummary = string.Empty;
 
-    public OnnxModel Model => _model;
+    public IModel Model => _model;
     public GraphStatistics Statistics { get; }
     public IReadOnlyList<string> Categories { get; }
     public IReadOnlyList<InitializerInfo> Initializers => _model.Initializers;
 
-    public ModelInspectorViewModel(MainWindowViewModel shell, IGraphAnalysisService graphService, OnnxModel model)
+    public ModelInspectorViewModel(MainWindowViewModel shell, IGraphAnalysisService graphService, IModel model)
     {
         _shell = shell;
         _graphService = graphService;
@@ -94,7 +97,7 @@ public partial class ModelInspectorViewModel : ViewModelBase
         Statistics = graphService.GetStatistics(model);
         Categories = graphService.GetCategories(model);
         _nodeItems = model.Graph.Nodes.ToDictionary(n => n.Id, n => new NodeItemViewModel(
-            n, graphService.GetCategory(n.OpType), CategoryBrushes.For(graphService.GetCategory(n.OpType))));
+            n, graphService.GetCategory(n), CategoryBrushes.For(graphService.GetCategory(n))));
         // Build this once, instead of scanning the entire graph on every click.
         var incoming = new Dictionary<string, HashSet<string>>();
         var outgoing = new Dictionary<string, HashSet<string>>();
@@ -189,7 +192,9 @@ public static class CategoryBrushes
             "Pool" => "PoolBrush",
             "Activation" => "ActivationBrush",
             "Linear" => "LinearBrush",
-            "Normalization" => "NormalizationBrush",
+            "Normalization" or "Transformer" => "NormalizationBrush",
+            "Classifier" => "LinearBrush",
+            "Regressor" => "ActivationBrush",
             "Pipeline" => "PoolBrush",
             _ => "OtherBrush"
         };

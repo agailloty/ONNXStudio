@@ -14,7 +14,8 @@
             <Grid ColumnDefinitions="1*,Auto">
                 <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                     <PathIcon Data="{StaticResource IconTerminal}" Width="14" Height="14" Foreground="{DynamicResource PrimaryBrush}"/>
-                    <TextBlock Text="{Binding Model.Name}" Classes="h4"/>
+                    <TextBlock Text="{Binding Model.Name}" Classes="h4" MaxWidth="360" TextTrimming="CharacterEllipsis"
+                               ToolTip.Tip="{Binding Model.Name}"/>
                     <TextBlock Text="&#x203A;" Classes="body-small"/>
                     <TextBlock Text="Python model" Classes="body-small"/>
                     <TextBlock Text="{Binding Model.FileSizeDisplay}" Classes="caption" VerticalAlignment="Center"/>
@@ -28,7 +29,7 @@
             </Grid>
         </Border>
 
-        <ScrollViewer>
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled">
             <StackPanel Margin="16" Spacing="16" MaxWidth="960" HorizontalAlignment="Stretch">
 
                 <!-- Runtime -->
@@ -66,96 +67,39 @@
                                    TextWrapping="Wrap"
                                    IsVisible="{Binding LoadError, Converter={StaticResource NullToBoolConverter}}"/>
 
-                        <StackPanel Spacing="6" IsVisible="{Binding IsLoaded}">
-                            <Grid ColumnDefinitions="140,1*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto">
+                        <StackPanel Spacing="8" IsVisible="{Binding IsLoaded}">
+                            <Grid ColumnDefinitions="140,1*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="4">
                                 <TextBlock Grid.Row="0" Text="Type" Classes="label"/>
-                                <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding SummaryText}" Classes="code" TextWrapping="Wrap"/>
+                                <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding SummaryText}" Classes="code"/>
                                 <TextBlock Grid.Row="1" Text="Input features" Classes="label"/>
-                                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding FeaturesText}" Classes="code" TextWrapping="Wrap"/>
+                                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding FeaturesText}" Classes="code"/>
                                 <TextBlock Grid.Row="2" Text="Classes" Classes="label"/>
-                                <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding ClassesText}" Classes="code" TextWrapping="Wrap"/>
+                                <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding ClassesText}" Classes="code"/>
                                 <TextBlock Grid.Row="3" Text="Methods" Classes="label"/>
-                                <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding MethodsText}" Classes="code" TextWrapping="Wrap"/>
+                                <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding MethodsText}" Classes="code"/>
                                 <TextBlock Grid.Row="4" Text="Library" Classes="label"/>
-                                <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding VersionText}" Classes="code" TextWrapping="Wrap"/>
+                                <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding VersionText}" Classes="code"/>
                             </Grid>
-                            <Expander Header="Parameters">
-                                <ItemsControl ItemsSource="{Binding Parameters}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate x:DataType="x:String">
-                                            <TextBlock Text="{Binding}" Classes="code" TextWrapping="Wrap"/>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                            </Expander>
+                            <TextBlock Text="Open the model in ONNX Studio:" Classes="label" Margin="0,8,0,0"/>
+                            <WrapPanel ItemSpacing="8" LineSpacing="8">
+                                <Button Content="Inspector" Classes="secondary small"
+                                        Command="{Binding OpenModelCommand}" CommandParameter="inspector"/>
+                                <Button Content="Inference" Classes="secondary small"
+                                        Command="{Binding OpenModelCommand}" CommandParameter="playground"/>
+                                <Button Content="API" Classes="secondary small"
+                                        Command="{Binding OpenModelCommand}" CommandParameter="api"/>
+                                <Button Content="Sandbox" Classes="secondary small"
+                                        Command="{Binding OpenModelCommand}" CommandParameter="sandbox"/>
+                            </WrapPanel>
                             <ItemsControl ItemsSource="{Binding Warnings}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate x:DataType="x:String">
-                                        <TextBlock Text="{Binding}" Classes="body-small" TextWrapping="Wrap"
+                                        <TextBlock Text="{Binding}" Classes="body-small"
                                                    Foreground="{DynamicResource ErrorBrush}"/>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
                         </StackPanel>
-                    </StackPanel>
-                </GroupBox>
-
-                <!-- Inference -->
-                <GroupBox Header="Inference" IsVisible="{Binding IsLoaded}">
-                    <StackPanel Spacing="10">
-                        <TextBlock Classes="body-small" TextWrapping="Wrap"
-                                   Text="One row per line, values separated by commas, semicolons or tabs. Text models take one text per line."/>
-                        <Grid ColumnDefinitions="Auto,200,Auto,1*">
-                            <TextBlock Text="Method:" Classes="body" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                            <ComboBox Grid.Column="1"
-                                      ItemsSource="{Binding Methods}"
-                                      SelectedItem="{Binding SelectedMethod, Mode=TwoWay}"
-                                      HorizontalAlignment="Stretch"/>
-                            <CheckBox Grid.Column="3" Margin="16,0,0,0"
-                                      IsChecked="{Binding HasHeader, Mode=TwoWay}"
-                                      Content="First line is a header (column names)"/>
-                        </Grid>
-                        <TextBox Text="{Binding InputText, Mode=TwoWay}"
-                                 AcceptsReturn="True"
-                                 MinHeight="100"
-                                 FontFamily="Consolas, Menlo, monospace"
-                                 TextWrapping="NoWrap"/>
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <Button Classes="primary" Command="{Binding RunCommand}" IsEnabled="{Binding CanRun}">
-                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <PathIcon Data="{StaticResource IconPlay}" Width="14" Height="14"/>
-                                    <TextBlock Text="Run"/>
-                                </StackPanel>
-                            </Button>
-                            <TextBlock Text="{Binding ResultInfo}" Classes="body-small" VerticalAlignment="Center"
-                                       IsVisible="{Binding HasResult}"/>
-                        </StackPanel>
-                        <TextBlock Text="{Binding InferenceError}"
-                                   Foreground="{DynamicResource ErrorBrush}"
-                                   TextWrapping="Wrap"
-                                   IsVisible="{Binding InferenceError, Converter={StaticResource NullToBoolConverter}}"/>
-
-                        <ItemsControl ItemsSource="{Binding Outputs}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="vm:PythonOutputItem">
-                                    <Border Background="{DynamicResource SurfaceElevatedBrush}" CornerRadius="6" Padding="12" Margin="0,4">
-                                        <StackPanel Spacing="4">
-                                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                                <TextBlock Text="{Binding Name}" Classes="label"/>
-                                                <TextBlock Text="{Binding Header}" Classes="body-small" VerticalAlignment="Center"/>
-                                            </StackPanel>
-                                            <ItemsControl ItemsSource="{Binding Lines}">
-                                                <ItemsControl.ItemTemplate>
-                                                    <DataTemplate x:DataType="x:String">
-                                                        <TextBlock Text="{Binding}" Classes="code" Margin="0,1" TextWrapping="Wrap"/>
-                                                    </DataTemplate>
-                                                </ItemsControl.ItemTemplate>
-                                            </ItemsControl>
-                                        </StackPanel>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
                     </StackPanel>
                 </GroupBox>
 
@@ -195,15 +139,26 @@
                                    TextWrapping="Wrap"
                                    IsVisible="{Binding ConversionError, Converter={StaticResource NullToBoolConverter}}"/>
                         <StackPanel Spacing="4" IsVisible="{Binding HasConversionResult}">
-                            <TextBlock Text="{Binding ConversionSummary}" Classes="label" TextWrapping="Wrap"
+                            <TextBlock Text="{Binding ConversionSummary}" Classes="label"
                                        Foreground="{DynamicResource PrimaryBrush}"/>
                             <ItemsControl ItemsSource="{Binding ConversionDetails}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate x:DataType="x:String">
-                                        <TextBlock Text="{Binding}" Classes="code" TextWrapping="Wrap" Margin="0,1"/>
+                                        <TextBlock Text="{Binding}" Classes="code" Margin="0,1"/>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
+                            <TextBlock Text="Use the converted model like any ONNX model:" Classes="body-small" Margin="0,8,0,0"/>
+                            <WrapPanel ItemSpacing="8" LineSpacing="8">
+                                <Button Content="Inspect" Classes="secondary small"
+                                        Command="{Binding OpenConvertedCommand}" CommandParameter="inspector"/>
+                                <Button Content="Inference" Classes="secondary small"
+                                        Command="{Binding OpenConvertedCommand}" CommandParameter="playground"/>
+                                <Button Content="API" Classes="secondary small"
+                                        Command="{Binding OpenConvertedCommand}" CommandParameter="api"/>
+                                <Button Content="Sandbox" Classes="secondary small"
+                                        Command="{Binding OpenConvertedCommand}" CommandParameter="sandbox"/>
+                            </WrapPanel>
                         </StackPanel>
                     </StackPanel>
                 </GroupBox>

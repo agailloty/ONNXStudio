@@ -21,7 +21,7 @@
             </Grid>
         </Border>
 
-        <ScrollViewer>
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled">
             <StackPanel Margin="16" Spacing="16" MaxWidth="720" HorizontalAlignment="Left">
 
                 <GroupBox Header="General">
@@ -89,7 +89,7 @@
                         <TextBlock Text="ONNX Studio runtime" Classes="label"/>
                         <TextBlock Classes="body-small" TextWrapping="Wrap"
                                    Text="Downloads a standalone CPython from github.com/astral-sh/python-build-standalone (checksum verified), then installs numpy, scipy, pandas, scikit-learn, joblib, skl2onnx, onnx and onnxruntime from PyPI. Nothing is installed system-wide."/>
-                        <StackPanel Orientation="Horizontal" Spacing="8">
+                        <WrapPanel ItemSpacing="8" LineSpacing="8">
                             <Button Classes="primary" Command="{Binding InstallPythonCommand}" IsEnabled="{Binding CanInstall}">
                                 <TextBlock Text="{Binding InstallPythonLabel}"/>
                             </Button>
@@ -99,12 +99,12 @@
                                     Command="{Binding RemoveManagedCommand}" IsEnabled="{Binding CanRemove}"/>
                             <Button Classes="danger" Content="Cancel"
                                     Command="{Binding CancelOperationCommand}" IsVisible="{Binding IsBusy}"/>
-                        </StackPanel>
+                        </WrapPanel>
 
                         <StackPanel Spacing="4" IsVisible="{Binding ProgressMessage, Converter={StaticResource NullToBoolConverter}}">
                             <ProgressBar Value="{Binding ProgressValue}" Maximum="100"
                                          IsIndeterminate="{Binding IsProgressIndeterminate}"/>
-                            <TextBlock Text="{Binding ProgressMessage}" Classes="body-small" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Text="{Binding ProgressMessage}" Classes="body-small" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
                         </StackPanel>
                         <TextBlock Text="{Binding Error}" Foreground="{DynamicResource ErrorBrush}" TextWrapping="Wrap"
                                    IsVisible="{Binding Error, Converter={StaticResource NullToBoolConverter}}"/>

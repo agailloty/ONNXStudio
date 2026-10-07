@@ -139,6 +139,34 @@ public class ModelInspectorTests
         Assert.Equal(filtered, vm.Nodes);
     }
 
+    [AvaloniaFact]
+    public async Task ConvertedScikitLearnModelsExposeTheirOriginalMetadataInTheStructure()
+    {
+        // sklearn_pipeline.onnx: StandardScaler -> LogisticRegression converted by ONNX Studio's worker.
+        await using var services = UiTestSetup.Services();
+        var model = await UiTestSetup.Load(services, "sklearn_pipeline.onnx");
+        var vm = CreateInspector(services, model);
+
+        vm.ShowStructureViewCommand.Execute(null);
+
+        Assert.Equal(2, vm.Components.Count);
+        Assert.Contains("scikit-learn Pipeline", vm.StructureSummary);
+        var onnx = vm.Components[0];
+        Assert.Contains(onnx.Parameters, p => p.Key == "onnxstudio.source" && p.Value == "scikit-learn");
+        Assert.DoesNotContain(onnx.Parameters, p => p.Key == "onnxstudio.sklearn.info");
+
+        var pipeline = vm.Components[1];
+        Assert.Equal("Pipeline", pipeline.Kind);
+        Assert.Contains(pipeline.Parameters, p => p.Key == "Input features");
+        Assert.Equal(new[] { "scaler : StandardScaler", "clf : LogisticRegression" }, pipeline.Children.Select(c => c.Header));
+        var scaler = pipeline.Children[0];
+        Assert.Equal("Transformer", scaler.Kind);
+        Assert.Contains(scaler.Fitted, f => f.Key.StartsWith("mean_") && f.Value.StartsWith("["));
+        var classifier = pipeline.Children[1];
+        Assert.Contains(classifier.Parameters, p => p.Key == "C");
+        Assert.Contains(classifier.Fitted, f => f.Key.StartsWith("coef_"));
+    }
+
     [Fact]
     public void HugeStructureHasBoundedBranchesAndEveryNodeRemainsReachable()
     {

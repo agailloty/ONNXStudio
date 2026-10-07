@@ -47,7 +47,8 @@
             <Grid ColumnDefinitions="Auto,Auto,1*,Auto">
                 <StackPanel Grid.Column="0" Grid.ColumnSpan="3" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                     <PathIcon Data="{StaticResource IconBox}" Width="14" Height="14" Foreground="{DynamicResource PrimaryBrush}"/>
-                    <TextBlock Text="{Binding Model.Name}" Classes="h4"/>
+                    <TextBlock Text="{Binding Model.Name}" Classes="h4" MaxWidth="360" TextTrimming="CharacterEllipsis"
+                               ToolTip.Tip="{Binding Model.Name}"/>
                     <TextBlock Text="&#x203A;" Classes="body-small"/>
                     <TextBlock Text="Inspector" Classes="body-small"/>
                 </StackPanel>
@@ -69,14 +70,24 @@
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="0,1,0,0"
                 Padding="16,8">
-            <StackPanel Orientation="Horizontal" Spacing="24">
-                <TextBlock Classes="body-small" Text="{Binding Model.ProducerName, StringFormat='Producer: {0}'}"/>
-                <TextBlock Classes="body-small" Text="{Binding Model.OpsetVersion, StringFormat='Opset: {0}'}"/>
-                <TextBlock Classes="body-small" Text="{Binding Statistics.NodeCount, StringFormat='{}{0} nodes'}"/>
-                <TextBlock Classes="body-small" Text="{Binding Statistics.EdgeCount, StringFormat='{}{0} edges'}"/>
-                <TextBlock Classes="body-small" Text="{Binding Statistics.TotalParameters, StringFormat='{}{0} parameters'}"/>
-                <TextBlock Classes="body-small" Text="{Binding Model.FileSizeDisplay}"/>
-            </StackPanel>
+            <WrapPanel ItemSpacing="24">
+                <ItemsControl ItemsSource="{Binding Facts}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel ItemSpacing="24"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="x:String">
+                            <TextBlock Classes="body-small" TextWrapping="NoWrap" Text="{Binding}"/>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock Classes="body-small" TextWrapping="NoWrap" Text="{Binding Statistics.NodeCount, StringFormat='{}{0} nodes'}"/>
+                <TextBlock Classes="body-small" TextWrapping="NoWrap" Text="{Binding Statistics.EdgeCount, StringFormat='{}{0} edges'}"/>
+                <TextBlock Classes="body-small" TextWrapping="NoWrap" Text="{Binding Statistics.TotalParameters, StringFormat='{}{0} parameters'}"/>
+                <TextBlock Classes="body-small" TextWrapping="NoWrap" Text="{Binding Model.FileSizeDisplay}"/>
+            </WrapPanel>
         </Border>
 
         <Border DockPanel.Dock="Top" Padding="16,8">
@@ -126,7 +137,7 @@
                     BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="1,0,0,0"
                     CornerRadius="0,8,8,0">
-                <ScrollViewer>
+                <ScrollViewer HorizontalScrollBarVisibility="Disabled">
                     <StackPanel Margin="16" Spacing="12">
                         <TextBlock Text="Node details" Classes="h3"/>
 
@@ -138,7 +149,7 @@
 
                         <!-- Selected node -->
                         <StackPanel IsVisible="{Binding ShowNodeDetails}" Spacing="12">
-                            <TextBlock Text="{Binding SelectedNode.OpType}" Classes="h4"
+                            <TextBlock Text="{Binding SelectedNode.OpType}" Classes="h4" TextWrapping="Wrap"
                                        Foreground="{Binding SelectedNode.CategoryBrush}"/>
                             <TextBlock Text="{Binding SelectedNode.Name}" Classes="code"/>
                             <TextBlock Text="{Binding DependencySummary}" Classes="body-small"/>
@@ -173,10 +184,10 @@
                             <ItemsControl ItemsSource="{Binding Model.Inputs}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate x:DataType="models:TensorSchema">
-                                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,2">
+                                        <WrapPanel ItemSpacing="8" Margin="0,2">
                                             <TextBlock Text="{Binding Name}" Classes="code"/>
                                             <TextBlock Text="{Binding Display}" Classes="body-small"/>
-                                        </StackPanel>
+                                        </WrapPanel>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
@@ -186,10 +197,10 @@
                             <ItemsControl ItemsSource="{Binding Model.Outputs}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate x:DataType="models:TensorSchema">
-                                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,2">
+                                        <WrapPanel ItemSpacing="8" Margin="0,2">
                                             <TextBlock Text="{Binding Name}" Classes="code"/>
                                             <TextBlock Text="{Binding Display}" Classes="body-small"/>
-                                        </StackPanel>
+                                        </WrapPanel>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
@@ -199,11 +210,11 @@
                             <ItemsControl ItemsSource="{Binding Initializers}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate x:DataType="models:InitializerInfo">
-                                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,2">
+                                        <WrapPanel ItemSpacing="8" Margin="0,2">
                                             <TextBlock Text="{Binding Name}" Classes="code"/>
                                             <TextBlock Text="{Binding ShapeDisplay}" Classes="body-small"/>
                                             <TextBlock Text="{Binding ElementCount, StringFormat='{}{0} elements'}" Classes="body-small"/>
-                                        </StackPanel>
+                                        </WrapPanel>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
@@ -226,9 +237,10 @@
                         <TreeView.ItemTemplate>
                             <TreeDataTemplate x:DataType="vm:ModelComponent" ItemsSource="{Binding Children}">
                                 <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,2">
-                                    <TextBlock Text="{Binding Header}"/>
+                                    <TextBlock Text="{Binding Header}" MaxWidth="320" TextTrimming="CharacterEllipsis"
+                                               ToolTip.Tip="{Binding Header}"/>
                                     <Border CornerRadius="4" Padding="6,1" Background="{DynamicResource SurfaceElevatedBrush}">
-                                        <TextBlock Text="{Binding Kind}" Classes="body-small"/>
+                                        <TextBlock Text="{Binding Kind}" Classes="body-small" TextWrapping="NoWrap"/>
                                     </Border>
                                 </StackPanel>
                             </TreeDataTemplate>
@@ -244,6 +256,9 @@
                         <TextBlock Text="{Binding SelectedComponent.Header}" Classes="h4" TextWrapping="Wrap"/>
                         <TextBlock Text="{Binding SelectedComponent.Description}" Classes="body-secondary" TextWrapping="Wrap"/>
                         <ItemsControl ItemsSource="{Binding SelectedComponent.Parameters}" ItemTemplate="{StaticResource AttributeTemplate}"/>
+                        <GroupBox Header="Learned attributes" IsVisible="{Binding SelectedComponent.HasFitted}">
+                            <ItemsControl ItemsSource="{Binding SelectedComponent.Fitted}" ItemTemplate="{StaticResource AttributeTemplate}"/>
+                        </GroupBox>
                     </StackPanel>
                 </ScrollViewer>
             </Border>

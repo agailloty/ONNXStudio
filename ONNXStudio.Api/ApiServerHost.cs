@@ -133,7 +133,7 @@ public sealed class ApiServerHost : IAsyncDisposable
         await StopAsync();
     }
 
-    private async void OnModelRemoved(object? sender, ONNXStudio.Core.Models.OnnxModel model)
+    private async void OnModelRemoved(object? sender, ONNXStudio.Core.Models.IModel model)
     {
         try
         {

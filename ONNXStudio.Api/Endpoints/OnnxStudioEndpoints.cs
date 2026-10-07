@@ -98,18 +98,20 @@ public static class OnnxStudioEndpoints
     {
         public string Id { get; init; } = string.Empty;
         public string Name { get; init; } = string.Empty;
+        public string Format { get; init; } = string.Empty;
         public string Producer { get; init; } = string.Empty;
         public long OpsetVersion { get; init; }
         public string FileSize { get; init; } = string.Empty;
         public int InputCount { get; init; }
         public int OutputCount { get; init; }
 
-        public static ModelSummary From(OnnxModel m) => new()
+        public static ModelSummary From(IModel m) => new()
         {
             Id = m.Id,
             Name = m.Name,
-            Producer = m.ProducerName,
-            OpsetVersion = m.OpsetVersion,
+            Format = m.Format,
+            Producer = m.Producer,
+            OpsetVersion = (m as OnnxModel)?.OpsetVersion ?? 0,
             FileSize = m.FileSizeDisplay,
             InputCount = m.Inputs.Count,
             OutputCount = m.Outputs.Count
@@ -121,6 +123,7 @@ public static class OnnxStudioEndpoints
         public string Id { get; init; } = string.Empty;
         public string Name { get; init; } = string.Empty;
         public string FilePath { get; init; } = string.Empty;
+        public string Format { get; init; } = string.Empty;
         public string Producer { get; init; } = string.Empty;
         public long OpsetVersion { get; init; }
         public long IrVersion { get; init; }
@@ -130,15 +133,16 @@ public static class OnnxStudioEndpoints
         public IReadOnlyList<TensorInfoDto> Inputs { get; init; } = Array.Empty<TensorInfoDto>();
         public IReadOnlyList<TensorInfoDto> Outputs { get; init; } = Array.Empty<TensorInfoDto>();
 
-        public static ModelDetails From(OnnxModel m) => new()
+        public static ModelDetails From(IModel m) => new()
         {
             Id = m.Id,
             Name = m.Name,
             FilePath = m.FilePath,
-            Producer = m.ProducerName,
-            OpsetVersion = m.OpsetVersion,
-            IrVersion = m.IrVersion,
-            DocString = m.DocString,
+            Format = m.Format,
+            Producer = m.Producer,
+            OpsetVersion = (m as OnnxModel)?.OpsetVersion ?? 0,
+            IrVersion = (m as OnnxModel)?.IrVersion ?? 0,
+            DocString = m.Description,
             NodeCount = m.Graph.Nodes.Count,
             ParameterCount = m.Initializers.Sum(i => i.ElementCount),
             Inputs = m.Inputs.Select(TensorInfoDto.From).ToList(),
@@ -167,14 +171,14 @@ public static class OnnxStudioEndpoints
 
         public string RequestExample { get; init; } = string.Empty;
 
-        public static SchemaResponse From(OnnxModel m) => new()
+        public static SchemaResponse From(IModel m) => new()
         {
             Inputs = m.Inputs.Select(TensorInfoDto.From).ToList(),
             Outputs = m.Outputs.Select(TensorInfoDto.From).ToList(),
             RequestExample = ExampleOrEmpty(m)
         };
 
-        private static string ExampleOrEmpty(OnnxModel model)
+        private static string ExampleOrEmpty(IModel model)
         {
             try { return ApiExamples.Payload(model); }
             catch (InvalidOperationException) { return string.Empty; }
@@ -188,7 +192,7 @@ public static class OnnxStudioEndpoints
         public Dictionary<string, object> Outputs { get; init; } = new();
         public Dictionary<string, IReadOnlyList<long>> OutputShapes { get; init; } = new();
 
-        public static PredictResponse From(OnnxModel model, InferenceResult result)
+        public static PredictResponse From(IModel model, InferenceResult result)
         {
             var outputs = new Dictionary<string, object>();
             var shapes = new Dictionary<string, IReadOnlyList<long>>();

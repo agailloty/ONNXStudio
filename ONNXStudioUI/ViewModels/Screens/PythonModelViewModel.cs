@@ -8,38 +8,19 @@ using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using ONNXStudio.Core.Models;
 using ONNXStudio.Core.Python;
 using ONNXStudioUI.Services;
 
 namespace ONNXStudioUI.ViewModels.Screens;
 
-/// <summary>One array returned by the model (predict, predict_proba...), one line per input row.</summary>
-public sealed class PythonOutputItem
-{
-    public string Name { get; }
-    public string Header { get; }
-    public IReadOnlyList<string> Lines { get; }
-
-    public PythonOutputItem(PythonPredictionOutput output, IReadOnlyList<string>? classes)
-    {
-        Name = output.Name;
-        var shape = "[" + string.Join(", ", output.Shape) + "]";
-        Header = output.Name == "predict_proba" && classes is { Count: > 0 }
-            ? $"{output.DType} {shape} - columns: {string.Join(", ", classes)}"
-            : $"{output.DType} {shape}";
-        Lines = output.Rows.Select((value, index) => $"{index + 1}: {value}").ToArray();
-        if (output.Truncated) Lines = Lines.Append("... (truncated)").ToArray();
-    }
-}
-
 /// <summary>
-/// Screen of a joblib / pickle model: load it (after the user confirms trust),
-/// run inference on typed values and convert it to ONNX.
+/// Import step of a joblib / pickle file: check the Python runtime, confirm that the file is trusted,
+/// load it as a <see cref="SklearnModel"/> and hand it over to the same screens as any other model
+/// (inspector, inference, API, sandbox). It also converts the model to an ONNX file.
 /// </summary>
 public partial class PythonModelViewModel : ViewModelBase, IDisposable
 {
-    private static readonly string[] MethodChoices = { "auto", "predict", "predict_proba", "predict_log_proba", "decision_function", "transform", "all" };
-
     private readonly MainWindowViewModel _shell;
     private readonly IPythonModelService _service;
     private readonly IPythonRuntimeService _runtime;
@@ -47,10 +28,9 @@ public partial class PythonModelViewModel : ViewModelBase, IDisposable
     private readonly IToastService _toast;
     private readonly Func<IModelLoadCoordinator?> _coordinator;
     private CancellationTokenSource? _operation;
+    private string? _convertedPath;
 
     public PythonModel Model { get; }
-
-    public IReadOnlyList<string> Methods => MethodChoices;
 
     // ----- runtime & trust -----
 
@@ -67,60 +47,32 @@ public partial class PythonModelViewModel : ViewModelBase, IDisposable
     // ----- loaded model -----
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasInfo))]
     [NotifyPropertyChangedFor(nameof(IsLoaded))]
-    [NotifyPropertyChangedFor(nameof(CanRun))]
     [NotifyPropertyChangedFor(nameof(CanConvert))]
     [NotifyPropertyChangedFor(nameof(LoadButtonText))]
-    private PythonModelInfo? _info;
+    private SklearnModel? _loadedModel;
 
     [ObservableProperty]
     private string? _loadError;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanLoad))]
-    [NotifyPropertyChangedFor(nameof(CanRun))]
     [NotifyPropertyChangedFor(nameof(CanConvert))]
     [NotifyPropertyChangedFor(nameof(IsIdle))]
     private bool _isWorking;
 
-    public bool HasInfo => Info != null;
-    public bool IsLoaded => Info != null;
+    public bool IsLoaded => LoadedModel != null;
     public string LoadButtonText => IsLoaded ? "Reload model" : "Load model";
     public bool IsIdle => !IsWorking;
     public bool CanLoad => IsTrusted && !IsWorking;
-    public bool CanRun => IsLoaded && !IsWorking;
     public bool CanConvert => IsLoaded && !IsWorking;
 
-    public string SummaryText => Info?.Summary ?? string.Empty;
+    public string SummaryText => LoadedModel?.Info.Summary ?? string.Empty;
     public string FeaturesText { get; private set; } = string.Empty;
     public string ClassesText { get; private set; } = string.Empty;
     public string MethodsText { get; private set; } = string.Empty;
     public string VersionText { get; private set; } = string.Empty;
-    public ObservableCollection<string> Parameters { get; } = new();
     public ObservableCollection<string> Warnings { get; } = new();
-
-    // ----- inference -----
-
-    [ObservableProperty]
-    private string _inputText = string.Empty;
-
-    [ObservableProperty]
-    private bool _hasHeader;
-
-    [ObservableProperty]
-    private string _selectedMethod = "auto";
-
-    [ObservableProperty]
-    private string? _inferenceError;
-
-    [ObservableProperty]
-    private bool _hasResult;
-
-    [ObservableProperty]
-    private string _resultInfo = string.Empty;
-
-    public ObservableCollection<PythonOutputItem> Outputs { get; } = new();
 
     // ----- conversion -----
 
@@ -197,9 +149,11 @@ public partial class PythonModelViewModel : ViewModelBase, IDisposable
 
     // ----- load -----
 
+    /// <summary>Loads the file in the Python worker, registers it like any model and opens its inspector.</summary>
     [RelayCommand]
     public async Task LoadAsync()
     {
+        if (!CanLoad) return;
         LoadError = null;
         await ExecuteAsync(async token =>
         {
@@ -210,13 +164,18 @@ public partial class PythonModelViewModel : ViewModelBase, IDisposable
                 return;
             }
 
-            Info = result.Value;
-            ShowInfo(result.Value!);
+            token.ThrowIfCancellationRequested();
+            var model = SklearnModel.Create(Model, result.Value!);
+            ShowInfo(model);
+            if (_coordinator() is { } coordinator) await coordinator.RegisterAsync(model).ConfigureAwait(true);
+            _shell.ShowInspector(model);
         }, onError: message => LoadError = message).ConfigureAwait(true);
     }
 
-    private void ShowInfo(PythonModelInfo info)
+    private void ShowInfo(SklearnModel model)
     {
+        var info = model.Info;
+        LoadedModel = model;
         FeaturesText = info.IsTextModel
             ? "raw text (one text per row)"
             : info.FeatureNames is { Count: > 0 }
@@ -224,69 +183,22 @@ public partial class PythonModelViewModel : ViewModelBase, IDisposable
                 : info.FeatureCount is { } count ? count.ToString(CultureInfo.InvariantCulture) : "unknown";
         ClassesText = info.Classes is { Count: > 0 } ? string.Join(", ", info.Classes) : "-";
         MethodsText = string.Join(", ", info.Methods);
-        VersionText = info.TrainedWithSklearn == null
+        VersionText = info.TrainedWithSklearn == null || info.TrainedWithSklearn == info.RuntimeSklearn
             ? $"scikit-learn {info.RuntimeSklearn}"
-            : info.TrainedWithSklearn == info.RuntimeSklearn
-                ? $"scikit-learn {info.RuntimeSklearn}"
-                : $"trained with scikit-learn {info.TrainedWithSklearn}, loaded with {info.RuntimeSklearn}";
+            : $"trained with scikit-learn {info.TrainedWithSklearn}, loaded with {info.RuntimeSklearn}";
 
-        Parameters.Clear();
-        foreach (var (key, value) in info.Parameters) Parameters.Add($"{key} = {value}");
         Warnings.Clear();
         foreach (var warning in info.Warnings) Warnings.Add(warning);
 
         foreach (var name in new[] { nameof(SummaryText), nameof(FeaturesText), nameof(ClassesText), nameof(MethodsText), nameof(VersionText) })
             OnPropertyChanged(name);
-
-        HasHeader = info.FeatureNames is { Count: > 0 };
-        InputText = SampleInput(info);
-        SelectedMethod = "auto";
     }
 
-    private static string SampleInput(PythonModelInfo info)
-    {
-        if (info.IsTextModel) return "sample text";
-        var zeros = (info.FeatureCount ?? info.FeatureNames?.Count ?? 0) is var n and > 0
-            ? string.Join(", ", Enumerable.Repeat("0", n))
-            : string.Empty;
-        return info.FeatureNames is { Count: > 0 }
-            ? string.Join(", ", info.FeatureNames) + Environment.NewLine + zeros
-            : zeros;
-    }
-
-    // ----- inference -----
-
+    /// <summary>Opens the loaded model in one of the shared screens (inspector, playground, api, sandbox).</summary>
     [RelayCommand]
-    public async Task RunAsync()
+    private void OpenModel(string screen)
     {
-        InferenceError = null;
-        HasResult = false;
-        Outputs.Clear();
-
-        var parsed = PythonInputParser.Parse(InputText, HasHeader, Info?.IsTextModel == true);
-        if (parsed.IsFailure)
-        {
-            InferenceError = parsed.Error;
-            return;
-        }
-
-        var table = parsed.Value!;
-        await ExecuteAsync(async token =>
-        {
-            var result = await _service.PredictAsync(new PythonPredictionRequest(
-                Model.FilePath, IsTrusted, SelectedMethod, table.Columns, table.Rows), token).ConfigureAwait(true);
-            if (result.IsFailure)
-            {
-                InferenceError = Describe(result.Error!);
-                return;
-            }
-
-            var value = result.Value!;
-            foreach (var output in value.Outputs) Outputs.Add(new PythonOutputItem(output, value.Classes));
-            ResultInfo = $"{value.RowCount} row(s) in {value.ElapsedMs} ms" +
-                         (value.Warnings.Count > 0 ? $" - {value.Warnings.Count} warning(s): {value.Warnings[0]}" : string.Empty);
-            HasResult = true;
-        }, onError: message => InferenceError = message).ConfigureAwait(true);
+        if (LoadedModel is { } model) Show(model, screen);
     }
 
     // ----- conversion -----
@@ -305,6 +217,7 @@ public partial class PythonModelViewModel : ViewModelBase, IDisposable
         ConversionError = null;
         HasConversionResult = false;
         ConversionDetails.Clear();
+        _convertedPath = null;
 
         if (!int.TryParse(OpsetText.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var opset) || opset is < 1 or > 30)
         {
@@ -335,13 +248,46 @@ public partial class PythonModelViewModel : ViewModelBase, IDisposable
             ConversionDetails.Add("Validation: " + conversion.Validation.Detail);
             foreach (var warning in conversion.Warnings.Take(3)) ConversionDetails.Add("Warning: " + warning);
             HasConversionResult = true;
+            _convertedPath = conversion.OutputPath;
             _toast.Show("Model converted to ONNX");
 
             if (LoadAfterConversion && _coordinator() is { } coordinator)
             {
                 await coordinator.LoadAsync(conversion.OutputPath).ConfigureAwait(true);
+                if (_shell.FindModel(conversion.OutputPath) is { } loaded) _shell.ShowInspector(loaded);
             }
         }, onError: message => ConversionError = message).ConfigureAwait(true);
+    }
+
+    /// <summary>Opens the converted ONNX model in one of its screens, loading it first if needed.</summary>
+    [RelayCommand]
+    private async Task OpenConvertedAsync(string screen)
+    {
+        if (_convertedPath == null) return;
+        var model = _shell.FindModel(_convertedPath);
+        if (model == null && _coordinator() is { } coordinator)
+        {
+            await coordinator.LoadAsync(_convertedPath).ConfigureAwait(true);
+            model = _shell.FindModel(_convertedPath);
+        }
+        if (model == null)
+        {
+            ConversionError = "The converted model could not be opened.";
+            return;
+        }
+
+        Show(model, screen);
+    }
+
+    private void Show(IModel model, string screen)
+    {
+        switch (screen)
+        {
+            case "playground": _shell.ShowPlayground(model); break;
+            case "api": _shell.ShowApiConfig(model); break;
+            case "sandbox": _shell.ShowApiSandbox(model); break;
+            default: _shell.ShowInspector(model); break;
+        }
     }
 
     // ----- helpers -----

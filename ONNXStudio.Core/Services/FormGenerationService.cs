@@ -48,12 +48,12 @@ public sealed class FormField
 /// </summary>
 public interface IFormGenerationService
 {
-    IReadOnlyList<FormField> GenerateFields(OnnxModel model);
+    IReadOnlyList<FormField> GenerateFields(IModel model);
 }
 
 public sealed class FormGenerationService : IFormGenerationService
 {
-    public IReadOnlyList<FormField> GenerateFields(OnnxModel model)
+    public IReadOnlyList<FormField> GenerateFields(IModel model)
     {
         var fields = new List<FormField>();
         foreach (var input in model.Inputs)

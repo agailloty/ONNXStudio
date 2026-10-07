@@ -34,7 +34,7 @@ public partial class ApiSandboxViewModel : ViewModelBase, IDisposable
     private readonly MainWindowViewModel _shell;
     private readonly ApiServerHost _host;
     private readonly IToastService _toast;
-    private readonly OnnxModel _model;
+    private readonly IModel _model;
     private readonly HttpClient _httpClient = new() { MaxResponseContentBufferSize = 10 * 1024 * 1024, Timeout = TimeSpan.FromSeconds(30) };
 
     [ObservableProperty]
@@ -66,11 +66,11 @@ public partial class ApiSandboxViewModel : ViewModelBase, IDisposable
     public bool IsSuccess => StatusCode is >= 200 and < 300;
     public Avalonia.Media.IBrush StatusBrush => StatusCode is >= 200 and < 300 ? Avalonia.Media.Brushes.ForestGreen
         : StatusCode is >= 300 and < 400 ? Avalonia.Media.Brushes.DarkOrange : Avalonia.Media.Brushes.IndianRed;
-    public OnnxModel Model => _model;
+    public IModel Model => _model;
     public string EndpointUrl => $"http://localhost:{(_host.IsRunning ? _host.Port : _host.RequestedPort)}" + SelectedEndpoint[(SelectedEndpoint.IndexOf(' ') + 1)..];
     public bool IsServerRunning => _host.IsRunning;
 
-    public ApiSandboxViewModel(MainWindowViewModel shell, ApiServerHost host, IToastService toast, OnnxModel model)
+    public ApiSandboxViewModel(MainWindowViewModel shell, ApiServerHost host, IToastService toast, IModel model)
     {
         _shell = shell;
         _host = host;

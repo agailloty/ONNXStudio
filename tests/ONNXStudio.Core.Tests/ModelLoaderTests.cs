@@ -29,6 +29,35 @@ public class ModelLoaderTests
     }
 
     [Fact]
+    public async Task LoadScikitLearnConversion_ReadsTheMetadataStoredByTheConverter()
+    {
+        // sklearn_pipeline.onnx: StandardScaler -> LogisticRegression converted by ONNX Studio's Python worker.
+        var loader = TestSetup.CreateLoader();
+
+        var result = await loader.LoadAsync(TestSetup.FixturePath("sklearn_pipeline.onnx"));
+
+        Assert.True(result.IsSuccess, result.Error?.ToString());
+        var metadata = result.Value!.Metadata;
+        Assert.Equal("scikit-learn", metadata["onnxstudio.source"]);
+        Assert.Equal("Pipeline", metadata["onnxstudio.sklearn.class"]);
+        var info = ONNXStudio.Core.Python.PythonModelInfo.TryParse(metadata[ONNXStudio.Core.Python.PythonModelInfo.OnnxMetadataKey]);
+        var root = info!.Components!;
+        Assert.Equal("Pipeline", root.Kind);
+        Assert.Equal(new[] { "scaler", "clf" }, root.Children.Select(c => c.Name));
+        var coefficients = root.Children[1].Fitted.Single(f => f.Name == "coef_");
+        Assert.Equal(new[] { 1, 4 }, coefficients.Shape);
+        Assert.Equal(4, coefficients.Values.Count);
+        Assert.Contains(root.Children[1].Parameters, p => p.Key == "C");
+    }
+
+    [Fact]
+    public void ModelsWithoutMetadataAndInvalidJsonAreHandled()
+    {
+        Assert.Null(ONNXStudio.Core.Python.PythonModelInfo.TryParse("not json"));
+        Assert.Null(ONNXStudio.Core.Python.PythonModelInfo.TryParse("[1, 2]"));
+    }
+
+    [Fact]
     public async Task LoadLinregModel_ExtractsGraphAndAttributes()
     {
         var loader = TestSetup.CreateLoader();

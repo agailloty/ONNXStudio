@@ -14,6 +14,14 @@ import warnings
 
 WORKER_VERSION = 1
 MAX_OUTPUT_ELEMENTS = 200000
+MAX_PREVIEW = 64                 # values previewed per fitted attribute
+MAX_COMPONENTS = 200
+MAX_COMPONENT_DEPTH = 8
+MAX_COMPONENT_CHILDREN = 50
+MAX_FITTED_ATTRIBUTES = 60
+MAX_EMBEDDED_METADATA = 1000000  # characters stored in the ONNX file
+METADATA_KEY = "onnxstudio.sklearn.info"
+CHILD_ATTRIBUTES = ("best_estimator_", "estimator_", "base_estimator_", "final_estimator_", "regressor_", "classifier_")
 INFERENCE_METHODS = ("predict", "predict_proba", "predict_log_proba", "decision_function", "transform")
 
 
@@ -178,7 +186,170 @@ def is_classifier(estimator, classes):
     return classes is not None and hasattr(estimator, "predict_proba")
 
 
-def inspect_model(model, collected_warnings):
+def is_estimator(value):
+    return hasattr(value, "get_params") and hasattr(value, "fit")
+
+
+def describe_param(value):
+    """Readable, bounded text of a hyper-parameter (nested estimators are shown by name)."""
+    if is_estimator(value):
+        return type(value).__name__
+    if isinstance(value, (list, tuple)) and value and all(isinstance(v, tuple) and v and isinstance(v[0], str) for v in value):
+        return "[" + ", ".join(str(v[0]) for v in value[:20]) + ("..." if len(value) > 20 else "") + "]"
+    return short_repr(value, 200)
+
+
+def parameters_of(estimator):
+    try:
+        return {str(k): describe_param(v) for k, v in list(estimator.get_params(deep=False).items())[:100]}
+    except Exception:  # noqa: BLE001
+        return {}
+
+
+def estimator_kind(estimator):
+    name = type(estimator).__name__
+    if getattr(estimator, "steps", None) is not None:
+        return "Pipeline"
+    if name in ("ColumnTransformer", "FeatureUnion"):
+        return name
+    try:
+        from sklearn.base import is_classifier as sk_is_classifier, is_regressor as sk_is_regressor
+        if sk_is_classifier(estimator):
+            return "Classifier"
+        if sk_is_regressor(estimator):
+            return "Regressor"
+    except Exception:  # noqa: BLE001
+        pass
+    if hasattr(estimator, "transform"):
+        return "Transformer"
+    return "Estimator"
+
+
+def child_estimators(model):
+    """Nested estimators as (name, estimator, note): pipeline steps, column transformers, ensembles, search wrappers."""
+    children = []
+    steps = getattr(model, "steps", None)
+    transformers = getattr(model, "transformers_", None) or getattr(model, "transformers", None)
+    union = getattr(model, "transformer_list", None)
+    estimators = getattr(model, "estimators", None)
+    if isinstance(steps, list):
+        children = [(item[0], item[1], "") for item in steps if len(item) > 1]
+    elif isinstance(transformers, list):
+        children = [(item[0], item[1], "columns: " + short_repr(item[2], 160)) for item in transformers if len(item) > 2]
+    elif isinstance(union, list):
+        children = [(item[0], item[1], "") for item in union if len(item) > 1]
+    elif isinstance(estimators, list) and estimators and all(isinstance(item, tuple) and len(item) == 2 for item in estimators):
+        children = [(item[0], item[1], "") for item in estimators]
+    known = {id(c[1]) for c in children}
+    for attribute in CHILD_ATTRIBUTES:
+        try:
+            value = getattr(model, attribute, None)
+        except Exception:  # noqa: BLE001
+            value = None
+        if value is not None and is_estimator(value) and id(value) not in known:
+            children.append((attribute, value, ""))
+            known.add(id(value))
+    return children
+
+
+def scalar_text(value):
+    if isinstance(value, float):
+        value = float(value)
+        return repr(value) if math.isfinite(value) else str(value)
+    if isinstance(value, int) and not isinstance(value, bool):
+        return str(int(value))
+    return short_repr(value, 200) if not isinstance(value, str) else (value if len(value) <= 200 else value[:197] + "...")
+
+
+def summarize_attribute(name, value, preview):
+    """One learned (fitted) attribute: scalars as text, arrays/lists/dicts as a bounded preview of their values."""
+    import numpy as np
+
+    item = {"name": name, "kind": "scalar", "dtype": None, "shape": None, "count": 1, "values": [], "summary": ""}
+    try:
+        if hasattr(value, "to_numpy") and not hasattr(value, "tocoo"):
+            value = value.to_numpy()
+        if value is None or isinstance(value, (bool, int, float, str)):
+            item["summary"] = scalar_text(value)
+        elif isinstance(value, np.generic):
+            item["summary"] = scalar_text(value.item())
+            item["dtype"] = str(value.dtype)
+        elif hasattr(value, "tocoo"):
+            item.update(kind="sparse", shape=[int(d) for d in value.shape], count=int(value.nnz), dtype=str(value.dtype))
+            item["summary"] = "sparse {} matrix {}, {} stored values".format(value.dtype, tuple(value.shape), value.nnz)
+        elif isinstance(value, np.ndarray) or (isinstance(value, (list, tuple)) and len(value) <= 100000 and all(
+                isinstance(v, (bool, int, float, str, np.generic)) or v is None for v in value[:200])):
+            array = value if isinstance(value, np.ndarray) else np.asarray(value)
+            item.update(kind="array", dtype=str(array.dtype), shape=[int(d) for d in array.shape], count=int(array.size))
+            item["summary"] = "{} {}".format(array.dtype, tuple(array.shape))
+            head = array.flat[:preview]
+            item["values"] = [(v if isinstance(v, str) else short_repr(v, 80)) if array.dtype == object else v for v in to_py(head)] if preview > 0 else []
+        elif isinstance(value, dict):
+            item.update(kind="dict", count=len(value))
+            item["summary"] = "{} entries".format(len(value))
+            item["values"] = ["{}: {}".format(k, short_repr(v, 80)) for k, v in list(value.items())[:preview]]
+        elif isinstance(value, (list, tuple)):
+            kinds = {}
+            for entry in value:
+                kinds[type(entry).__name__] = kinds.get(type(entry).__name__, 0) + 1
+            item.update(kind="list", count=len(value))
+            item["summary"] = "{} x ".format(len(value)) + ", ".join("{} {}".format(n, k) for k, n in list(kinds.items())[:5])
+        elif is_estimator(value):
+            item.update(kind="object")
+            item["summary"] = type(value).__name__
+        else:
+            item.update(kind="object")
+            item["summary"] = "{}: {}".format(type(value).__name__, short_repr(value, 160))
+    except Exception as error:  # noqa: BLE001
+        item.update(kind="object", values=[])
+        item["summary"] = "unavailable ({}: {})".format(type(error).__name__, error)
+    return item
+
+
+def fitted_attributes(estimator, skip, preview):
+    try:
+        attributes = vars(estimator)
+    except TypeError:
+        attributes = {}
+    entries = []
+    for key, value in attributes.items():
+        if not key.endswith("_") or key.startswith("_") or id(value) in skip:
+            continue
+        if key == "tree_":
+            for stat in ("node_count", "max_depth", "n_leaves", "n_features", "n_outputs"):
+                if hasattr(value, stat):
+                    entries.append({"name": "tree_." + stat, "kind": "scalar", "dtype": None, "shape": None, "count": 1,
+                                    "values": [], "summary": str(getattr(value, stat))})
+            continue
+        entries.append(summarize_attribute(key, value, preview))
+    if "feature_importances_" not in attributes and hasattr(type(estimator), "feature_importances_"):
+        try:
+            entries.append(summarize_attribute("feature_importances_", estimator.feature_importances_, preview))
+        except Exception:  # noqa: BLE001
+            pass
+    return entries[:MAX_FITTED_ATTRIBUTES]
+
+
+def build_component(name, estimator, note, preview, state, depth=0):
+    state["count"] += 1
+    node = {"name": name, "className": type(estimator).__name__, "module": type(estimator).__module__,
+            "kind": "Passthrough" if isinstance(estimator, str) else estimator_kind(estimator),
+            "description": note, "parameters": {}, "fitted": [], "children": []}
+    if not is_estimator(estimator):
+        node["className"] = str(estimator) if isinstance(estimator, str) else type(estimator).__name__
+        return node
+    node["parameters"] = parameters_of(estimator)
+    children = child_estimators(estimator)
+    node["fitted"] = fitted_attributes(estimator, {id(c[1]) for c in children}, preview)
+    if depth < MAX_COMPONENT_DEPTH:
+        for child_name, child, child_note in children[:MAX_COMPONENT_CHILDREN]:
+            if state["count"] >= MAX_COMPONENTS:
+                break
+            node["children"].append(build_component(str(child_name), child, child_note, preview, state, depth + 1))
+    return node
+
+
+def inspect_model(model, collected_warnings, preview=MAX_PREVIEW):
     import sklearn
 
     feature_names = getattr(model, "feature_names_in_", None)
@@ -193,6 +364,7 @@ def inspect_model(model, collected_warnings):
     steps = [{"name": name, "className": type(est).__name__} for name, est in steps_of(model)]
 
     return {
+        "components": build_component(type(model).__name__, model, "", preview, {"count": 0}),
         "className": type(model).__name__,
         "module": type(model).__module__,
         "isPipeline": bool(steps),
@@ -449,6 +621,34 @@ def validate_conversion(model, onnx_path, initial_types, collected_warnings):
         return {"performed": True, "passed": None, "detail": "Validation could not complete: {}: {}".format(type(error).__name__, error)}
 
 
+def embed_source_metadata(onnx_model, model):
+    """Keeps what scikit-learn knew about the model in the ONNX file (metadata_props) so ONNX Studio can show it later."""
+    try:
+        payload = None
+        for preview in (32, 0, None):
+            info = inspect_model(model, [], preview=preview or 0)
+            info.pop("warnings", None)
+            if preview is None:
+                info.pop("components", None)
+            text = json.dumps(to_py(info), ensure_ascii=False, allow_nan=False, separators=(",", ":"))
+            if len(text) <= MAX_EMBEDDED_METADATA:
+                payload = text
+                break
+        if payload is None:
+            return
+        for key, value in (("onnxstudio.source", "scikit-learn"),
+                           ("onnxstudio.sklearn.class", type(model).__name__),
+                           ("onnxstudio.sklearn.version", sklearn_version_of(model) or ""),
+                           (METADATA_KEY, payload)):
+            entry = onnx_model.metadata_props.add()
+            entry.key = key
+            entry.value = value
+        if not onnx_model.doc_string:
+            onnx_model.doc_string = "scikit-learn {} converted by ONNX Studio".format(type(model).__name__)
+    except Exception:  # noqa: BLE001 - the metadata is a bonus, never a reason to fail the conversion
+        pass
+
+
 def convert(model, request, collected_warnings):
     try:
         import onnx
@@ -489,6 +689,8 @@ def convert(model, request, collected_warnings):
         if name in ("MissingShapeCalculator", "MissingConverter", "NotImplementedError"):
             raise WorkerError("unsupported_model", "skl2onnx cannot convert '{}' yet: {}".format(type(model).__name__, error))
         raise WorkerError("convert_failed", "Conversion failed: {}: {}".format(name, error))
+
+    embed_source_metadata(onnx_model, model)
 
     directory = os.path.dirname(os.path.abspath(output_path))
     os.makedirs(directory, exist_ok=True)

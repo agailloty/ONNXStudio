@@ -8,7 +8,7 @@
              x:Class="ONNXStudioUI.Views.Screens.WelcomeView"
              x:DataType="vm:WelcomeViewModel">
 
-    <ScrollViewer>
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled">
         <Grid ColumnDefinitions="1*,Auto,1*">
             <StackPanel Grid.Column="1"
                         Width="560"
@@ -48,33 +48,37 @@
                         BorderThickness="1"
                         CornerRadius="4"
                         Padding="28">
-                    <StackPanel Orientation="Horizontal" Spacing="16" HorizontalAlignment="Center">
+                    <Grid ColumnDefinitions="Auto,1*" ColumnSpacing="16">
                         <PathIcon Data="{StaticResource IconUpload}"
                                   Width="32" Height="32"
                                   Foreground="{DynamicResource PrimaryBrush}"/>
-                        <StackPanel VerticalAlignment="Center" Spacing="2">
-                            <TextBlock Text="Drop your .onnx, .joblib or .pkl file here" Classes="h4"/>
-                            <TextBlock Text="Anywhere in the window - several files can be dropped at once. joblib / pickle models need a Python runtime (Settings)."
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                            <TextBlock Text="Drop your .onnx, .joblib or .pkl file here" Classes="h4" TextWrapping="Wrap"/>
+                            <TextBlock Text="Anywhere in the window - several files can be dropped at once. joblib / pickle models need a Python runtime (Settings); once converted they behave like any ONNX model (graph, inference, API)."
                                        Classes="body-small"/>
                         </StackPanel>
-                    </StackPanel>
+                    </Grid>
                 </Border>
 
                 <!-- Workflow -->
                 <StackPanel Spacing="8">
                     <TextBlock Text="Workflow" Classes="h3"/>
-                    <StackPanel Orientation="Horizontal" Spacing="12">
+                    <Grid ColumnDefinitions="Auto,1*" ColumnSpacing="12">
                         <PathIcon Data="{StaticResource IconGraph}" Width="16" Height="16" Foreground="{DynamicResource PrimaryBrush}"/>
-                        <TextBlock Text="Inspect - browse the computation graph, attributes and initializers" Classes="body-secondary"/>
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <TextBlock Grid.Column="1" Text="Inspect - browse the computation graph, attributes and initializers" Classes="body-secondary"/>
+                    </Grid>
+                    <Grid ColumnDefinitions="Auto,1*" ColumnSpacing="12">
                         <PathIcon Data="{StaticResource IconPlay}" Width="16" Height="16" Foreground="{DynamicResource PrimaryBrush}"/>
-                        <TextBlock Text="Inference - fill a generated form and run the model locally" Classes="body-secondary"/>
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <TextBlock Grid.Column="1" Text="Inference - fill a generated form and run the model locally" Classes="body-secondary"/>
+                    </Grid>
+                    <Grid ColumnDefinitions="Auto,1*" ColumnSpacing="12">
                         <PathIcon Data="{StaticResource IconApi}" Width="16" Height="16" Foreground="{DynamicResource PrimaryBrush}"/>
-                        <TextBlock Text="API - serve it over REST and try it in the sandbox" Classes="body-secondary"/>
-                    </StackPanel>
+                        <TextBlock Grid.Column="1" Text="API - serve it over REST and try it in the sandbox" Classes="body-secondary"/>
+                    </Grid>
+                    <Grid ColumnDefinitions="Auto,1*" ColumnSpacing="12">
+                        <PathIcon Data="{StaticResource IconTerminal}" Width="16" Height="16" Foreground="{DynamicResource PrimaryBrush}"/>
+                        <TextBlock Grid.Column="1" Text="scikit-learn - explore pipelines, parameters and learned attributes, then convert to ONNX" Classes="body-secondary"/>
+                    </Grid>
                 </StackPanel>
             </StackPanel>
         </Grid>

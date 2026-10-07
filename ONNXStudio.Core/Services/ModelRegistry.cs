@@ -9,15 +9,15 @@ namespace ONNXStudio.Core.Services;
 /// </summary>
 public interface IModelRegistry
 {
-    event EventHandler<OnnxModel>? ModelAdded;
-    event EventHandler<OnnxModel>? ModelRemoved;
+    event EventHandler<IModel>? ModelAdded;
+    event EventHandler<IModel>? ModelRemoved;
 
-    IReadOnlyList<OnnxModel> Models { get; }
-    OnnxModel? GetById(string id);
+    IReadOnlyList<IModel> Models { get; }
+    IModel? GetById(string id);
     bool IsLoaded(string filePath);
 
     /// <summary>Registers a loaded model. Reloads of the same file replace the previous entry.</summary>
-    OnnxModel Register(OnnxModel model);
+    IModel Register(IModel model);
 
     /// <summary>Removes a model. Returns true if the model was registered.</summary>
     bool Unload(string modelId);
@@ -25,13 +25,13 @@ public interface IModelRegistry
 
 public sealed class ModelRegistry : IModelRegistry
 {
-    private readonly ConcurrentDictionary<string, OnnxModel> _models = new();
+    private readonly ConcurrentDictionary<string, IModel> _models = new();
     private readonly object _sync = new();
 
-    public event EventHandler<OnnxModel>? ModelAdded;
-    public event EventHandler<OnnxModel>? ModelRemoved;
+    public event EventHandler<IModel>? ModelAdded;
+    public event EventHandler<IModel>? ModelRemoved;
 
-    public IReadOnlyList<OnnxModel> Models
+    public IReadOnlyList<IModel> Models
     {
         get
         {
@@ -42,7 +42,7 @@ public sealed class ModelRegistry : IModelRegistry
         }
     }
 
-    public OnnxModel? GetById(string id)
+    public IModel? GetById(string id)
         => _models.TryGetValue(id, out var model) ? model : null;
 
     public bool IsLoaded(string filePath)
@@ -54,7 +54,7 @@ public sealed class ModelRegistry : IModelRegistry
         }
     }
 
-    public OnnxModel Register(OnnxModel model)
+    public IModel Register(IModel model)
     {
         lock (_sync)
         {
@@ -76,7 +76,7 @@ public sealed class ModelRegistry : IModelRegistry
 
     public bool Unload(string modelId)
     {
-        OnnxModel? removed = null;
+        IModel? removed = null;
         lock (_sync)
         {
             if (_models.TryRemove(modelId, out var model))

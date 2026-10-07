@@ -15,7 +15,7 @@ public class ModelRegistryTests
     public void Register_AddsModelAndRaisesEvent()
     {
         var registry = new ModelRegistry();
-        OnnxModel? added = null;
+        IModel? added = null;
         registry.ModelAdded += (_, m) => added = m;
 
         var model = CreateModel("a.onnx", "1");
@@ -44,7 +44,7 @@ public class ModelRegistryTests
     {
         var registry = new ModelRegistry();
         var model = registry.Register(CreateModel("a.onnx", "1"));
-        OnnxModel? removed = null;
+        IModel? removed = null;
         registry.ModelRemoved += (_, m) => removed = m;
 
         var success = registry.Unload("1");

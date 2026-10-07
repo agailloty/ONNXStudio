@@ -14,7 +14,7 @@ serve **ONNX models** — built as a modular monolith on **Avalonia**,
 | Local inference (US-004) | Real ONNX Runtime execution with input validation, LRU session cache, typed outputs (scalars, vectors, top classes) |
 | REST API (US-005) | Embedded Kestrel server (`/models`, `/models/{id}`, `/models/{id}/schema`, `/models/{id}/predict`, `/health`) with CORS and JSON schema/cURL previews |
 | API sandbox (US-006) | Real HTTP requests against the embedded server, status/timing, history with re-run |
-| Python models | Open scikit-learn models saved with joblib / pickle (`.joblib`, `.pkl`, `.pickle`...), inspect them (class, pipeline steps, features, classes), run inference (`predict`, `predict_proba`, `decision_function`, `transform`) on typed rows, and convert them to ONNX with skl2onnx (opset capped to what the installed packages support, optional validation against scikit-learn). Needs a Python runtime, see [Python support](#python-support) |
+| Python models | Open scikit-learn models saved with joblib / pickle (`.joblib`, `.pkl`, `.pickle`...), inspect them (class, pipeline steps, features, classes), run inference (`predict`, `predict_proba`, `decision_function`, `transform`) on typed rows, and convert them to ONNX with skl2onnx (opset capped to what the installed packages support, optional validation against scikit-learn). The converted model opens like any ONNX model (graph, inference, API), and the scikit-learn metadata (pipeline steps, hyper-parameters, learned attributes such as `coef_` or `classes_`) is stored in the ONNX file and browsable in **Inspector > Structure & Parameters**. Needs a Python runtime, see [Python support](#python-support) |
 | UX | VS Code style workbench (activity bar, model explorer side bar, editor tabs, status bar), Dark+/Light+ themes, toasts, model screens cached per model. Shortcuts: Ctrl+O open, Ctrl+B side bar, Ctrl+W close tab, Ctrl+, settings |
 
 ## Solution layout (modular monolith)
@@ -70,11 +70,22 @@ first system interpreter that has scikit-learn, numpy and joblib. Inference need
 **Security:** unpickling executes code contained in the file. Nothing runs until you
 tick *I trust this file* on the model screen; only open files you created or trust.
 
-Typical flow: open a `.joblib` / `.pkl` (Ctrl+O, drag-and-drop or CLI), tick the trust
-box, *Load model*, then *Run* on rows such as `5.1, 3.5, 1.4, 0.2` (add a header line for
-models trained on named columns; text pipelines take one text per line), or *Convert*
-to write an `.onnx` file that is opened in the studio. Converted models target opset 18
-at most, which is what the studio can open.
+Typical flow: open a `.joblib` / `.pkl` (Ctrl+O, drag-and-drop or CLI), choose or
+install Python if needed, tick the trust box, and select *Load model*. The model
+then appears in the same explorer and **Inspector** as ONNX models, without
+conversion. **Graph** shows pipeline steps and transformer branches;
+**Structure & Parameters** exposes nested estimators, hyper-parameters and learned
+attributes, with selection linked to the graph. **Inference**, **API** and
+**Sandbox** also use the shared screens and the model's input/output schemas.
+The Python import tab retains the optional *Convert to ONNX* action. Converted
+models target opset 18 at most, which is what the studio can open.
+
+The shared screens depend on `IModel` (metadata, schemas, computation graph and
+lazy `StructureNode` trees). `OnnxModel` and `SklearnModel` supply those views;
+`IInferenceBackend` handles execution with ONNX Runtime or the Python worker.
+Another format, such as ML.NET, can implement these contracts and register its
+backend without duplicating the analysis screens. ML.NET support is not yet
+implemented.
 
 ## Release builds
 

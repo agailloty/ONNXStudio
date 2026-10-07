@@ -39,16 +39,19 @@ public sealed class NodeDependencies
 /// </summary>
 public interface IGraphAnalysisService
 {
-    GraphStatistics GetStatistics(OnnxModel model);
-    IReadOnlyList<GraphNode> Search(OnnxModel model, string? query, string? category);
-    IReadOnlyList<string> GetCategories(OnnxModel model);
+    GraphStatistics GetStatistics(IModel model);
+    IReadOnlyList<GraphNode> Search(IModel model, string? query, string? category);
+    IReadOnlyList<string> GetCategories(IModel model);
     string GetCategory(string opType);
-    NodeDependencies GetDependencies(OnnxModel model, string nodeId);
+
+    /// <summary>Category of a node: the one chosen by its model type, else derived from its operator.</summary>
+    string GetCategory(GraphNode node);
+    NodeDependencies GetDependencies(IModel model, string nodeId);
 }
 
 public sealed class GraphAnalysisService : IGraphAnalysisService
 {
-    public GraphStatistics GetStatistics(OnnxModel model) => new()
+    public GraphStatistics GetStatistics(IModel model) => new()
     {
         NodeCount = model.Graph.Nodes.Count,
         EdgeCount = model.Graph.Edges.Count,
@@ -59,7 +62,7 @@ public sealed class GraphAnalysisService : IGraphAnalysisService
         DistinctOpTypes = model.Graph.Nodes.Select(n => n.OpType).Distinct().Count()
     };
 
-    public IReadOnlyList<GraphNode> Search(OnnxModel model, string? query, string? category)
+    public IReadOnlyList<GraphNode> Search(IModel model, string? query, string? category)
     {
         IEnumerable<GraphNode> nodes = model.Graph.Nodes;
 
@@ -72,21 +75,23 @@ public sealed class GraphAnalysisService : IGraphAnalysisService
 
         if (!string.IsNullOrEmpty(category) && category != "All")
         {
-            nodes = nodes.Where(n => string.Equals(GetCategory(n.OpType), category, StringComparison.OrdinalIgnoreCase));
+            nodes = nodes.Where(n => string.Equals(GetCategory(n), category, StringComparison.OrdinalIgnoreCase));
         }
 
         return nodes.ToList();
     }
 
-    public IReadOnlyList<string> GetCategories(OnnxModel model)
+    public IReadOnlyList<string> GetCategories(IModel model)
     {
         var categories = new List<string> { "All" };
         categories.AddRange(model.Graph.Nodes
-            .Select(n => GetCategory(n.OpType))
+            .Select(GetCategory)
             .Distinct()
             .OrderBy(c => c));
         return categories;
     }
+
+    public string GetCategory(GraphNode node) => node.Category ?? GetCategory(node.OpType);
 
     /// <summary>
     /// Groups operator types into UI categories (color-coded by the viewer).
@@ -102,7 +107,7 @@ public sealed class GraphAnalysisService : IGraphAnalysisService
         _ => "Other"
     };
 
-    public NodeDependencies GetDependencies(OnnxModel model, string nodeId)
+    public NodeDependencies GetDependencies(IModel model, string nodeId)
     {
         var nodeById = model.Graph.Nodes.ToDictionary(n => n.Id);
         var dependsOn = model.Graph.Edges

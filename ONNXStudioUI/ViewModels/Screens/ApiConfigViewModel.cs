@@ -17,7 +17,7 @@ public partial class ApiConfigViewModel : ViewModelBase, IDisposable
     private readonly MainWindowViewModel _shell;
     private readonly ApiServerHost _host;
     private readonly IToastService _toast;
-    private readonly OnnxModel _model;
+    private readonly IModel _model;
 
     [ObservableProperty]
     private int _port;
@@ -36,11 +36,11 @@ public partial class ApiConfigViewModel : ViewModelBase, IDisposable
 
     [ObservableProperty] private string? _error;
 
-    public OnnxModel Model => _model;
+    public IModel Model => _model;
     public string EndpointPath => "/models/" + _model.Id + "/predict";
     public string FullEndpointUrl => "POST http://localhost:" + (_host.IsRunning ? _host.Port : Port) + EndpointPath;
 
-    public ApiConfigViewModel(MainWindowViewModel shell, ApiServerHost host, IToastService toast, OnnxModel model)
+    public ApiConfigViewModel(MainWindowViewModel shell, ApiServerHost host, IToastService toast, IModel model)
     {
         _shell = shell;
         _host = host;

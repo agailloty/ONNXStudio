@@ -19,7 +19,7 @@ public partial class DashboardViewModel : ViewModelBase
     private readonly ONNXStudioUI.Services.IFilePickerService _picker;
 
     [ObservableProperty]
-    private ObservableCollection<OnnxModel> _filteredModels = new();
+    private ObservableCollection<IModel> _filteredModels = new();
 
     [ObservableProperty]
     private string _searchText = string.Empty;
@@ -48,7 +48,7 @@ public partial class DashboardViewModel : ViewModelBase
     [RelayCommand]
     private void Refresh()
     {
-        IEnumerable<OnnxModel> models = _registry.Models;
+        IEnumerable<IModel> models = _registry.Models;
 
         if (!string.IsNullOrWhiteSpace(SearchText))
         {
@@ -64,7 +64,7 @@ public partial class DashboardViewModel : ViewModelBase
             _ => models.OrderByDescending(m => m.LoadedAt)
         };
 
-        FilteredModels = new ObservableCollection<OnnxModel>(models);
+        FilteredModels = new ObservableCollection<IModel>(models);
     }
 
     [RelayCommand]
@@ -74,25 +74,25 @@ public partial class DashboardViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void InspectModel(OnnxModel model)
+    private void InspectModel(IModel model)
     {
         _shell.ShowInspector(model);
     }
 
     [RelayCommand]
-    private void RunModel(OnnxModel model)
+    private void RunModel(IModel model)
     {
         _shell.ShowPlayground(model);
     }
 
     [RelayCommand]
-    private void ServeModel(OnnxModel model)
+    private void ServeModel(IModel model)
     {
         _shell.ShowApiConfig(model);
     }
 
     [RelayCommand]
-    private void UnloadModel(OnnxModel model)
+    private void UnloadModel(IModel model)
     {
         _registry.Unload(model.Id);
         _shell.ShowToast($"Model '{model.Name}' unloaded");
