@@ -18,6 +18,7 @@
 
                 <!-- Title -->
                 <StackPanel Spacing="6">
+                    <Image Source="/Assets/onnxstudio.png" Width="80" Height="80" HorizontalAlignment="Left" Margin="0,0,0,14"/>
                     <TextBlock Text="ONNX Studio" FontSize="32" FontWeight="Light"/>
                     <TextBlock Text="Inspect, run and serve your ONNX models"
                                FontSize="16"
@@ -43,10 +44,7 @@
 
                 <!-- Drop zone -->
                 <Border x:Name="DropZone"
-                        Background="{DynamicResource SurfaceBrush}"
-                        BorderBrush="{DynamicResource BorderBrush}"
-                        BorderThickness="1"
-                        CornerRadius="4"
+                        Classes="panel"
                         Padding="28">
                     <Grid ColumnDefinitions="Auto,1*" ColumnSpacing="16">
                         <PathIcon Data="{StaticResource IconUpload}"

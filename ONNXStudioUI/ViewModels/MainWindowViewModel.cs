@@ -270,6 +270,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         var model = value.Model;
         switch (value.Key.Split(':')[0])
         {
+            case "pymodel" when model is SklearnModel sklearn: ShowPythonModel(sklearn.File); break;
             case "playground": ShowPlayground(model); break;
             case "apiconfig": ShowApiConfig(model); break;
             case "sandbox": ShowApiSandbox(model); break;
@@ -295,6 +296,8 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     {
         var node = new ExplorerNode("model:" + model.Id, model.Name, model.Format == "ONNX" ? "IconBox" : "IconTerminal", model, model.FileSizeDisplay) { IsExpanded = false };
         node.Children.Add(new ExplorerNode("inspector:" + model.Id, "Inspector", "IconGraph", model));
+        if (model is SklearnModel sklearn)
+            node.Children.Add(new ExplorerNode("pymodel:" + sklearn.File.Id, "Export to ONNX", "IconSend", model));
         node.Children.Add(new ExplorerNode("playground:" + model.Id, "Inference", "IconPlay", model));
         node.Children.Add(new ExplorerNode("apiconfig:" + model.Id, "API", "IconApi", model));
         node.Children.Add(new ExplorerNode("sandbox:" + model.Id, "Sandbox", "IconSend", model));

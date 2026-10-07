@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <title>ONNX Studio</title>
+  <desc>A connected N inside a hexagonal O: model graphs, inference and the flow of data.</desc>
+  <defs>
+    <linearGradient id="tile" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="256" y2="256">
+      <stop offset="0" stop-color="#172E4B"/>
+      <stop offset="1" stop-color="#101B30"/>
+    </linearGradient>
+    <linearGradient id="graph" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="256" y2="256">
+      <stop offset="0" stop-color="#53A7FF"/>
+      <stop offset="1" stop-color="#39DFCB"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="240" height="240" rx="54" fill="url(#tile)"/>
+  <polyline points="128,49 196,88 196,168 128,207 60,168 60,88 128,49"
+            fill="none" stroke="url(#graph)" stroke-width="14" stroke-linejoin="round" stroke-linecap="round"/>
+  <polyline points="96,152 96,104 160,152 160,104" fill="none" stroke="#F4FAFF"
+            stroke-width="12" stroke-linejoin="round" stroke-linecap="round"/>
+  <circle cx="96" cy="152" r="9" fill="#53A7FF"/>
+  <circle cx="160" cy="104" r="9" fill="#39DFCB"/>
+</svg>

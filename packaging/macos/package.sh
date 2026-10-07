@@ -20,6 +20,7 @@ contents_dir="$app_dir/Contents"
 mkdir -p "$contents_dir/MacOS" "$contents_dir/Resources"
 cp -R "$publish_dir"/. "$contents_dir/MacOS/"
 chmod 0755 "$contents_dir/MacOS/ONNXStudioUI"
+cp "$publish_dir/Assets/onnxstudio.icns" "$contents_dir/Resources/onnxstudio.icns"
 
 cat > "$contents_dir/Info.plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
@@ -32,6 +33,7 @@ cat > "$contents_dir/Info.plist" <<EOF
   <key>CFBundleIdentifier</key><string>net.gailloty.onnxstudio</string>
   <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
   <key>CFBundleName</key><string>ONNX Studio</string>
+  <key>CFBundleIconFile</key><string>onnxstudio.icns</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleShortVersionString</key><string>$version</string>
   <key>CFBundleVersion</key><string>$version</string>

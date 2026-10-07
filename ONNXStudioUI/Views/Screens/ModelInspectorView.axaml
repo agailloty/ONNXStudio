@@ -53,6 +53,9 @@
                     <TextBlock Text="Inspector" Classes="body-small"/>
                 </StackPanel>
                 <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="4">
+                    <Button Content="Export to ONNX" Classes="primary small"
+                            IsVisible="{Binding CanExportToOnnx}"
+                            Command="{Binding ExportToOnnxCommand}"/>
                     <Button Content="Inspect" Classes="tab-active"/>
                     <Button Content="Inference"
                             Classes="tab"
@@ -105,10 +108,7 @@
 
             <!-- Graph -->
             <Border Grid.Column="0"
-                    Background="{DynamicResource SurfaceBrush}"
-                    BorderBrush="{DynamicResource BorderBrush}"
-                    BorderThickness="1"
-                    CornerRadius="8">
+                    Classes="panel">
                 <DockPanel>
                     <!-- Search + filter -->
                     <Border DockPanel.Dock="Top" Padding="12,8">
@@ -133,10 +133,7 @@
 
             <!-- Node details -->
             <Border Grid.Column="1"
-                    Background="{DynamicResource SurfaceBrush}"
-                    BorderBrush="{DynamicResource BorderBrush}"
-                    BorderThickness="1,0,0,0"
-                    CornerRadius="0,8,8,0">
+                    Classes="panel" Margin="12,0,0,0">
                 <ScrollViewer HorizontalScrollBarVisibility="Disabled">
                     <StackPanel Margin="16" Spacing="12">
                         <TextBlock Text="Node details" Classes="h3"/>
@@ -225,8 +222,7 @@
         </Grid>
         <!-- Structure explorer: the mock's tree and parameter panel, backed by the loaded model. -->
         <Grid ColumnDefinitions="1*,360" Margin="12" IsVisible="{Binding ShowStructure}">
-            <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}"
-                    BorderThickness="1" CornerRadius="8" Padding="12">
+            <Border Classes="panel" Padding="12">
                 <DockPanel>
                     <StackPanel DockPanel.Dock="Top" Spacing="6" Margin="0,0,0,12">
                         <TextBlock Text="Model structure" Classes="h3"/>
@@ -248,8 +244,7 @@
                     </TreeView>
                 </DockPanel>
             </Border>
-            <Border Grid.Column="1" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}"
-                    BorderThickness="1" CornerRadius="8" Margin="8,0,0,0">
+            <Border Grid.Column="1" Classes="panel" Margin="12,0,0,0">
                 <ScrollViewer HorizontalScrollBarVisibility="Disabled">
                     <StackPanel Margin="16" Spacing="12">
                         <TextBlock Text="Parameters" Classes="h3"/>

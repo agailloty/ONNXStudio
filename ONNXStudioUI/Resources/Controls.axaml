@@ -40,6 +40,9 @@
         <Setter Property="BorderBrush" Value="{DynamicResource ButtonBackgroundBrush}"/>
         <Setter Property="Foreground" Value="{DynamicResource OnPrimaryBrush}"/>
     </Style>
+    <Style Selector="Button.primary TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource OnPrimaryBrush}"/>
+    </Style>
     <Style Selector="Button.primary:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.primary:pressed /template/ ContentPresenter#PART_ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource ButtonHoverBrush}"/>
         <Setter Property="BorderBrush" Value="{DynamicResource ButtonHoverBrush}"/>
@@ -168,11 +171,11 @@
 
     <!-- ===================== Card (flat panel) ===================== -->
     <Style Selector="controls|Card">
-        <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
-        <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtleBrush}"/>
+        <Setter Property="Background" Value="{DynamicResource PanelBackgroundBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource PanelBorderBrush}"/>
         <Setter Property="BorderThickness" Value="1"/>
-        <Setter Property="CornerRadius" Value="4"/>
-        <Setter Property="Padding" Value="14"/>
+        <Setter Property="CornerRadius" Value="{DynamicResource CornerRadiusLg}"/>
+        <Setter Property="Padding" Value="16"/>
         <Setter Property="Template">
             <ControlTemplate>
                 <Border Background="{TemplateBinding Background}"

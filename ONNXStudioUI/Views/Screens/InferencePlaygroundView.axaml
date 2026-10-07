@@ -35,10 +35,7 @@
 
             <!-- Input form -->
             <Border Grid.Column="0"
-                    Background="{DynamicResource SurfaceBrush}"
-                    BorderBrush="{DynamicResource BorderBrush}"
-                    BorderThickness="1"
-                    CornerRadius="8">
+                    Classes="panel">
                 <DockPanel>
                     <Grid DockPanel.Dock="Top" ColumnDefinitions="1*,Auto" Margin="16,12">
                         <TextBlock Text="Input form" Classes="h3" VerticalAlignment="Center"/>
@@ -124,10 +121,7 @@
 
             <!-- Results -->
             <Border Grid.Column="1"
-                    Background="{DynamicResource SurfaceBrush}"
-                    BorderBrush="{DynamicResource BorderBrush}"
-                    BorderThickness="1,0,0,0"
-                    CornerRadius="0,8,8,0">
+                    Classes="panel" Margin="12,0,0,0">
                 <DockPanel>
                     <StackPanel DockPanel.Dock="Top" Margin="16,12" Spacing="4">
                         <TextBlock Text="Results" Classes="h3"/>

@@ -4,6 +4,7 @@ using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ONNXStudio.Core.Models;
+using ONNXStudio.Core.Python;
 using ONNXStudio.Core.Services;
 
 namespace ONNXStudioUI.ViewModels.Screens;
@@ -83,6 +84,14 @@ public partial class ModelInspectorViewModel : ViewModelBase
     private string _dependencySummary = string.Empty;
 
     public IModel Model => _model;
+    public bool CanExportToOnnx => Model is SklearnModel;
+
+    [RelayCommand(CanExecute = nameof(CanExportToOnnx))]
+    private void ExportToOnnx()
+    {
+        if (Model is SklearnModel sklearn) _shell.ShowPythonModel(sklearn.File);
+    }
+
     public GraphStatistics Statistics { get; }
     public IReadOnlyList<string> Categories { get; }
     public IReadOnlyList<InitializerInfo> Initializers => _model.Initializers;

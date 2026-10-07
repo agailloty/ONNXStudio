@@ -6,6 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <BuiltInComSupport>false</BuiltInComSupport>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\onnxstudio.ico</ApplicationIcon>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <RootNamespace>ONNXStudioUI</RootNamespace>
   </PropertyGroup>
@@ -29,5 +30,7 @@
   <ItemGroup>
     <AvaloniaResource Include="Assets\**" />
     <AvaloniaResource Include="Resources\**" />
+    <None Update="Assets\onnxstudio.ico;Assets\onnxstudio.png;Assets\onnxstudio.svg;Assets\onnxstudio.icns"
+          CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

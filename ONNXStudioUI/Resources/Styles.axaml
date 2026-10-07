@@ -41,18 +41,41 @@
         <Setter Property="CornerRadius" Value="2"/>
     </Style>
 
-    <!-- Panels: flat bordered sections instead of rounded cards -->
+    <!-- Shared section surface. Keep the heading inside the panel so its border
+         stays continuous instead of cutting through the title. -->
     <Style Selector="GroupBox">
-        <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+        <Setter Property="Background" Value="{DynamicResource PanelBackgroundBrush}"/>
         <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
-        <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtleBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource PanelBorderBrush}"/>
         <Setter Property="BorderThickness" Value="1"/>
-        <Setter Property="CornerRadius" Value="4"/>
-        <Setter Property="Padding" Value="12"/>
+        <Setter Property="CornerRadius" Value="{DynamicResource CornerRadiusLg}"/>
+        <Setter Property="Padding" Value="16"/>
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        <Setter Property="VerticalContentAlignment" Value="Stretch"/>
         <Setter Property="HeaderTemplate">
             <DataTemplate x:DataType="x:String">
-                <TextBlock Text="{Binding}" Classes="section"/>
+                <TextBlock Text="{Binding}" Classes="h3" TextWrapping="Wrap"/>
             </DataTemplate>
+        </Setter>
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="{TemplateBinding CornerRadius}"
+                        Padding="{TemplateBinding Padding}">
+                    <Grid RowDefinitions="Auto,*">
+                        <ContentPresenter Content="{TemplateBinding Header}"
+                                          ContentTemplate="{TemplateBinding HeaderTemplate}"
+                                          Margin="0,0,0,12"/>
+                        <ContentPresenter x:Name="PART_ContentPresenter" Grid.Row="1"
+                                          Content="{TemplateBinding Content}"
+                                          ContentTemplate="{TemplateBinding ContentTemplate}"
+                                          HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                    </Grid>
+                </Border>
+            </ControlTemplate>
         </Setter>
     </Style>
 
@@ -79,9 +102,15 @@
     </Style>
 
     <Style Selector="Border.panel">
-        <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
-        <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtleBrush}"/>
+        <Setter Property="Background" Value="{DynamicResource PanelBackgroundBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource PanelBorderBrush}"/>
         <Setter Property="BorderThickness" Value="1"/>
-        <Setter Property="CornerRadius" Value="4"/>
+        <Setter Property="CornerRadius" Value="{DynamicResource CornerRadiusLg}"/>
+    </Style>
+
+    <Style Selector="StackPanel.page-content">
+        <Setter Property="Margin" Value="24"/>
+        <Setter Property="Spacing" Value="20"/>
+        <Setter Property="HorizontalAlignment" Value="Stretch"/>
     </Style>
 </Styles>

@@ -8,7 +8,7 @@
         mc:Ignorable="d"
         x:Class="ONNXStudioUI.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Icon="/Assets/avalonia-logo.ico"
+        Icon="/Assets/onnxstudio.ico"
         Title="ONNX Studio"
         Width="1280" Height="800"
         MinWidth="1024" MinHeight="640"
@@ -38,6 +38,8 @@
                         </Button>
                     </StackPanel>
                     <StackPanel>
+                        <Image Source="/Assets/onnxstudio.png" Width="32" Height="32" Margin="8,12,8,10"
+                               ToolTip.Tip="ONNX Studio"/>
                         <Button Classes="activity"
                                 Classes.active="{Binding IsSidebarVisible}"
                                 Command="{Binding ToggleSidebarCommand}"
@@ -246,6 +248,8 @@
 
                 <!-- Current screen -->
                 <ContentControl Grid.Row="1"
+                                HorizontalContentAlignment="Stretch"
+                                VerticalContentAlignment="Stretch"
                                 Content="{Binding CurrentViewModel}"
                                 ContentTemplate="{StaticResource ViewLocator}" />
 

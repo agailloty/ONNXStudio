@@ -30,7 +30,11 @@
         </Border>
 
         <ScrollViewer HorizontalScrollBarVisibility="Disabled">
-            <StackPanel Margin="16" Spacing="16" MaxWidth="960" HorizontalAlignment="Stretch">
+            <StackPanel Classes="page-content">
+                <StackPanel Spacing="6">
+                    <TextBlock Text="Export to ONNX" Classes="h1"/>
+                    <TextBlock Text="Prepare your Python model, choose export options and open the result in Studio." Classes="body-secondary"/>
+                </StackPanel>
 
                 <!-- Runtime -->
                 <GroupBox Header="Python runtime">
@@ -45,7 +49,7 @@
 
                 <!-- Load -->
                 <GroupBox Header="Model">
-                    <StackPanel Spacing="10">
+                    <StackPanel Spacing="16">
                         <Border Background="{DynamicResource SurfaceElevatedBrush}" CornerRadius="6" Padding="10">
                             <TextBlock Classes="body-small" TextWrapping="Wrap"
                                        Text="Loading a joblib or pickle file runs the code it contains. Only load files you created or fully trust."/>
@@ -104,9 +108,10 @@
                 </GroupBox>
 
                 <!-- Conversion -->
-                <GroupBox Header="Convert to ONNX" IsVisible="{Binding IsLoaded}">
-                    <StackPanel Spacing="10">
-                        <Grid ColumnDefinitions="140,1*,Auto" RowDefinitions="Auto,Auto,Auto" >
+                <GroupBox Header="Export to ONNX" IsVisible="{Binding IsLoaded}">
+                    <StackPanel Spacing="16">
+                        <TextBlock Text="Choose where to save the model and configure the conversion." Classes="body-secondary"/>
+                        <Grid ColumnDefinitions="140,1*,Auto" RowDefinitions="Auto,Auto,Auto" RowSpacing="8" ColumnSpacing="12">
                             <TextBlock Text="Output file:" Classes="body" VerticalAlignment="Center"/>
                             <TextBox Grid.Column="1" Text="{Binding OutputPath, Mode=TwoWay}"/>
                             <Button Grid.Column="2" Content="Browse..." Classes="secondary small" Margin="8,0,0,0"
@@ -131,7 +136,7 @@
                                 Command="{Binding ConvertCommand}" IsEnabled="{Binding CanConvert}">
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <PathIcon Data="{StaticResource IconSend}" Width="14" Height="14"/>
-                                <TextBlock Text="Convert"/>
+                                <TextBlock Text="Export to ONNX"/>
                             </StackPanel>
                         </Button>
                         <TextBlock Text="{Binding ConversionError}"

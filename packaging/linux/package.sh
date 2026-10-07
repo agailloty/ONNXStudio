@@ -20,6 +20,10 @@ mkdir -p "$staging_dir/DEBIAN" "$staging_dir/opt/onnxstudio" \
 cp -R "$publish_dir"/. "$staging_dir/opt/onnxstudio/"
 chmod 0755 "$staging_dir/opt/onnxstudio/ONNXStudioUI"
 ln -s /opt/onnxstudio/ONNXStudioUI "$staging_dir/usr/bin/onnxstudio"
+mkdir -p "$staging_dir/usr/share/icons/hicolor/scalable/apps" \
+  "$staging_dir/usr/share/icons/hicolor/512x512/apps"
+cp "$publish_dir/Assets/onnxstudio.svg" "$staging_dir/usr/share/icons/hicolor/scalable/apps/onnxstudio.svg"
+cp "$publish_dir/Assets/onnxstudio.png" "$staging_dir/usr/share/icons/hicolor/512x512/apps/onnxstudio.png"
 
 installed_size="$(du -sk "$staging_dir/opt/onnxstudio" | cut -f1)"
 cat > "$staging_dir/DEBIAN/control" <<EOF
@@ -41,6 +45,7 @@ cat > "$staging_dir/usr/share/applications/onnxstudio.desktop" <<'EOF'
 [Desktop Entry]
 Type=Application
 Name=ONNX Studio
+Icon=onnxstudio
 Comment=Inspect, run and serve ONNX models
 Exec=/opt/onnxstudio/ONNXStudioUI
 Terminal=false

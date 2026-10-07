@@ -366,6 +366,65 @@ public class PythonScreensTests
         Assert.Empty(playground.Outputs);
     }
 
+    [AvaloniaTheory]
+    [InlineData("forest.joblib")]
+    [InlineData("forest.pkl")]
+    [InlineData("forest.pickle")]
+    public async Task ExportCanBeReopenedFromExplorerAndInspectorAfterClosingItsTab(string filename)
+    {
+        var service = new FakePythonModelService();
+        await using var services = UiTestSetup.Services(configure: s =>
+        {
+            s.AddSingleton<IPythonModelService>(service);
+            s.AddSingleton<IPythonRuntimeService>(new FakePythonRuntime());
+        });
+        var shell = services.GetRequiredService<MainWindowViewModel>();
+        shell.OpenPythonModel(TempModel(filename));
+        var export = Assert.IsType<PythonModelViewModel>(shell.CurrentViewModel);
+        export.IsTrusted = true;
+        await export.LoadAsync();
+        export.OpsetText = "17";
+        export.LoadAfterConversion = false;
+        var output = export.OutputPath;
+        var inspector = Assert.IsType<ModelInspectorViewModel>(shell.CurrentViewModel);
+        var exportNode = Assert.Single(Assert.Single(shell.ExplorerNodes).Children, n => n.Header == "Export to ONNX");
+        var key = "pymodel:" + export.Model.Id;
+
+        // Close the import tab after loading, then reopen it through the explorer.
+        shell.CloseTabCommand.Execute(Assert.Single(shell.Tabs, t => t.Key == key));
+        shell.SelectedExplorerNode = exportNode;
+        Assert.Same(export, shell.CurrentViewModel);
+        Assert.Same(exportNode, shell.SelectedExplorerNode);
+        Assert.True(Assert.Single(shell.Tabs, t => t.Key == key).IsActive);
+        Assert.True(export.CanConvert);
+        Assert.Equal("17", export.OpsetText);
+        Assert.Equal(output, export.OutputPath);
+
+        // Closing the active export tab must also allow reopening from the visible inspector button.
+        shell.CloseActiveTabCommand.Execute(null);
+        Assert.Same(inspector, shell.CurrentViewModel);
+        var view = new ModelInspectorView { DataContext = inspector };
+        var window = new Window { Width = 1280, Height = 800, Content = view };
+        try
+        {
+            window.Show();
+            window.UpdateLayout();
+            var button = Assert.Single(view.GetVisualDescendants().OfType<Button>(), b => Equals(b.Content, "Export to ONNX"));
+            Assert.True(button.IsEffectivelyVisible);
+            Assert.True(button.IsEnabled);
+            Assert.NotNull(button.Command);
+            button.Command.Execute(button.CommandParameter);
+            Assert.Same(export, shell.CurrentViewModel);
+            Assert.Same(exportNode, shell.SelectedExplorerNode);
+            Assert.Single(shell.Tabs, t => t.Key == key);
+            await export.ConvertAsync();
+            Assert.Null(export.ConversionError);
+            Assert.Equal(output, service.LastConversion!.OutputPath);
+            Assert.Equal(17, service.LastConversion.TargetOpset);
+        }
+        finally { window.Close(); }
+    }
+
     [AvaloniaFact]
     public async Task ConversionPassesOptionsAndOpensTheOnnxModel()
     {
@@ -422,6 +481,10 @@ public class PythonScreensTests
         Assert.Null(screen.ConversionError);
         var inspector = Assert.IsType<ModelInspectorViewModel>(shell.CurrentViewModel);
         Assert.Equal(output, inspector.Model.FilePath);
+        Assert.False(inspector.CanExportToOnnx);
+        Assert.False(inspector.ExportToOnnxCommand.CanExecute(null));
+        Assert.DoesNotContain(shell.ExplorerNodes.Single(n => n.Model.Id == inspector.Model.Id).Children,
+            n => n.Key.StartsWith("pymodel:"));
         Assert.Equal(2, inspector.Components.Count);
 
         shell.ShowPythonModel(registered);

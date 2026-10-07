@@ -82,3 +82,8 @@ output directory and numeric version, for example:
 bash packaging/linux/package.sh publish/linux-x64 artifacts 1.0.0
 bash packaging/macos/package.sh publish/osx-arm64 artifacts 1.0.0
 ```
+
+The logo master is `ONNXStudioUI/Assets/onnxstudio.svg`. To regenerate the PNG,
+multi-resolution Windows ICO and macOS ICNS on Windows, run
+`powershell -NoProfile -ExecutionPolicy Bypass -File packaging/Generate-BrandAssets.ps1`.
+These assets are copied into the publish output and used by all three installers.

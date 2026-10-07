@@ -22,36 +22,36 @@
         </Border>
 
         <ScrollViewer HorizontalScrollBarVisibility="Disabled">
-            <StackPanel Margin="16" Spacing="16" MaxWidth="720" HorizontalAlignment="Left">
+            <StackPanel Classes="page-content">
+                <StackPanel Spacing="6">
+                    <TextBlock Text="Make Studio yours" Classes="h1"/>
+                    <TextBlock Text="Choose your appearance, local API and Python environment." Classes="body-secondary"/>
+                </StackPanel>
 
-                <GroupBox Header="General">
-                    <StackPanel Spacing="12">
-                        <Grid ColumnDefinitions="200,1*">
-                            <TextBlock Grid.Column="0" Text="Theme:" Classes="body" VerticalAlignment="Center"/>
-                            <ComboBox Grid.Column="1"
-                                      ItemsSource="{Binding Themes}"
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="20">
+                    <GroupBox Header="Appearance">
+                        <StackPanel Spacing="12">
+                            <TextBlock Text="Theme" Classes="label"/>
+                            <ComboBox ItemsSource="{Binding Themes}"
                                       SelectedItem="{Binding SelectedTheme, Mode=TwoWay}"
-                                      Width="220"
-                                      HorizontalAlignment="Left"/>
-                        </Grid>
-                    </StackPanel>
-                </GroupBox>
+                                      HorizontalAlignment="Stretch"/>
+                            <TextBlock Text="Use a light or dark workspace, or follow your system." Classes="body-small"/>
+                        </StackPanel>
+                    </GroupBox>
 
-                <GroupBox Header="API server">
-                    <StackPanel Spacing="12">
-                        <Grid ColumnDefinitions="200,Auto">
-                            <TextBlock Grid.Column="0" Text="Port:" Classes="body" VerticalAlignment="Center"/>
-                            <TextBox Grid.Column="1"
-                                     Text="{Binding ApiPort, Mode=TwoWay}"
-                                     Width="120"/>
-                        </Grid>
-                        <TextBlock Classes="body-small"
+                    <GroupBox Grid.Column="1" Header="API server">
+                        <StackPanel Spacing="12">
+                            <TextBlock Text="Port" Classes="label"/>
+                            <TextBox Text="{Binding ApiPort, Mode=TwoWay}"
+                                     Width="120" HorizontalAlignment="Left"/>
+                            <TextBlock Classes="body-small"
                                    Text="Applied on the next server start (API configuration screen of a model)."/>
-                    </StackPanel>
-                </GroupBox>
+                        </StackPanel>
+                    </GroupBox>
+                </Grid>
 
                 <GroupBox Header="Python runtime (scikit-learn, ONNX conversion)" IsVisible="{Binding Python, Converter={StaticResource NullToBoolConverter}}">
-                    <StackPanel Spacing="12" DataContext="{Binding Python}" x:DataType="vm:PythonRuntimeViewModel">
+                    <StackPanel Spacing="16" DataContext="{Binding Python}" x:DataType="vm:PythonRuntimeViewModel">
                         <TextBlock Classes="body-small" TextWrapping="Wrap"
                                    Text="ONNX Studio ships no Python. To open joblib / pickle models and convert them to ONNX, let it install its own Python and packages in its data folder, or use a Python you already have."/>
                         <TextBlock Text="{Binding Status}" Classes="body" TextWrapping="Wrap"/>
@@ -115,12 +115,14 @@
                 </GroupBox>
 
                 <GroupBox Header="About">
-                    <StackPanel Spacing="8">
-                        <TextBlock Text="{Binding AppVersion, StringFormat='ONNX Studio v{0}'}" Classes="h3"/>
-                        <TextBlock Text="Inspect, run and serve your ONNX models - modular monolith built on Avalonia, ONNX Runtime and ASP.NET Core."
-                                   Classes="body-secondary"
-                                   TextWrapping="Wrap"/>
-                    </StackPanel>
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="16">
+                        <Image Source="/Assets/onnxstudio.png" Width="48" Height="48" VerticalAlignment="Top"/>
+                        <StackPanel Grid.Column="1" Spacing="8" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding AppVersion, StringFormat='ONNX Studio v{0}'}" Classes="h3"/>
+                            <TextBlock Text="Explore model graphs, run predictions locally and serve models through an API."
+                                       Classes="body-secondary"/>
+                        </StackPanel>
+                    </Grid>
                 </GroupBox>
             </StackPanel>
         </ScrollViewer>

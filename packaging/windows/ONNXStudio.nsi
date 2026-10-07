@@ -30,6 +30,8 @@ VIAddVersionKey /LANG=1033 "FileVersion" "${APP_VERSION}"
 VIAddVersionKey /LANG=1033 "LegalCopyright" "ONNX Studio contributors"
 
 !define MUI_ABORTWARNING
+!define MUI_ICON "${PUBLISH_DIR}\Assets\onnxstudio.ico"
+!define MUI_UNICON "${PUBLISH_DIR}\Assets\onnxstudio.ico"
 !define MUI_FINISHPAGE_RUN "$INSTDIR\${APP_EXE}"
 !insertmacro MUI_PAGE_WELCOME
 !insertmacro MUI_PAGE_DIRECTORY

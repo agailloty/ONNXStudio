@@ -6,7 +6,7 @@
         xmlns:controls="using:ONNXStudio.Mocks.Controls"
         mc:Ignorable="d"
         x:Class="ONNXStudio.Mocks.Views.MainWindow"
-        Icon="/Assets/avalonia-logo.ico"
+        Icon="/Assets/onnxstudio.ico"
         Title="ONNX Studio"
         Width="1280" Height="800"
         MinWidth="1024" MinHeight="640"

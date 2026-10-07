@@ -34,7 +34,7 @@
         </Border>
 
         <ScrollViewer HorizontalScrollBarVisibility="Disabled">
-            <StackPanel Margin="16" Spacing="12" MaxWidth="900">
+            <StackPanel Classes="page-content">
 
                 <!-- Server control -->
                 <GroupBox Header="Embedded API server">
