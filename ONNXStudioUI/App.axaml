@@ -3,7 +3,7 @@
              xmlns:local="using:ONNXStudioUI"
              xmlns:cvt="using:ONNXStudioUI.Converters"
              x:Class="ONNXStudioUI.App"
-             RequestedThemeVariant="Light">
+             RequestedThemeVariant="Dark">
 
     <Application.Styles>
         <FluentTheme />

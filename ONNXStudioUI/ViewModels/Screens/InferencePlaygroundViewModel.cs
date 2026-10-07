@@ -1,9 +1,7 @@
 using System;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -39,6 +37,8 @@ public partial class PlaygroundFieldViewModel : ObservableObject
 
     [ObservableProperty]
     private string? _error;
+    [ObservableProperty] private string _shapeText = string.Empty;
+    public bool HasDynamicShape => _schema.HasDynamicDimension;
 
     /// <summary>Decoded image tensor (CHW, normalized 0..1), set after upload.</summary>
     private float[]? _imageTensor;
@@ -60,13 +60,13 @@ public partial class PlaygroundFieldViewModel : ObservableObject
 
     private static string DefaultVector(TensorSchema schema)
     {
-        var staticDims = schema.Shape.Where(d => d.HasValue).Select(d => d!.Value).ToList();
-        var count = staticDims.Count > 0 ? (int)staticDims.Aggregate(1L, (a, b) => a * b) : 1;
-        if (count > 16)
+        long count = 1;
+        foreach (var dimension in schema.Shape)
         {
-            return string.Empty;
+            if (dimension is > 16 or <= 0 || count > 16 / (dimension ?? 1)) return string.Empty;
+            count *= dimension ?? 1;
         }
-        return string.Join(", ", Enumerable.Repeat("0", count));
+        return string.Join(", ", Enumerable.Repeat("0", (int)count));
     }
 
     [RelayCommand]
@@ -87,6 +87,8 @@ public partial class PlaygroundFieldViewModel : ObservableObject
         }
         catch (Exception ex)
         {
+            _imageTensor = null;
+            ImagePath = null;
             Error = "Could not decode image: " + ex.Message;
         }
     }
@@ -96,74 +98,23 @@ public partial class PlaygroundFieldViewModel : ObservableObject
     /// </summary>
     public Result<InferenceInputValue, string> ToInputValue()
     {
-        switch (Kind)
-        {
-            case FormFieldKind.Number:
-                if (!double.TryParse(ValueText, NumberStyles.Float, CultureInfo.InvariantCulture, out var number))
-                {
-                    return Result<InferenceInputValue, string>.Failure("enter a valid number");
-                }
-                return Result<InferenceInputValue, string>.Success(
-                    _schema.Shape.Count == 0 || _schema.Shape.All(d => d is 1 or null)
-                        ? InferenceInputValue.Scalar(number)
-                        : InferenceInputValue.Scalars(number));
-
-            case FormFieldKind.Vector:
-                var parts = ValueText.Split(new[] { ',', ' ', ';' }, StringSplitOptions.RemoveEmptyEntries);
-                if (parts.Length == 0)
-                {
-                    return Result<InferenceInputValue, string>.Failure("enter comma-separated values");
-                }
-                var values = new double[parts.Length];
-                for (int i = 0; i < parts.Length; i++)
-                {
-                    if (!double.TryParse(parts[i], NumberStyles.Float, CultureInfo.InvariantCulture, out values[i]))
-                    {
-                        return Result<InferenceInputValue, string>.Failure($"'{parts[i]}' is not a number");
-                    }
-                }
-
-                var shape = ResolveVectorShape(_schema, values.Length);
-                return Result<InferenceInputValue, string>.Success(
-                    InferenceInputValue.Array(values, shape));
-
-            case FormFieldKind.Image:
-                if (_imageTensor == null)
-                {
-                    return Result<InferenceInputValue, string>.Failure("upload an image first");
-                }
-                return Result<InferenceInputValue, string>.Success(
-                    InferenceInputValue.Tensor(_imageTensor,
-                        new[] { 1L, Field.ExpectedChannels, Field.ExpectedHeight, Field.ExpectedWidth }));
-
-            default:
-                return Result<InferenceInputValue, string>.Failure("text inputs are not supported yet");
-        }
+        if (Kind != FormFieldKind.Image)
+            return TensorInputParser.Parse(_schema, ValueText, ShapeText);
+        if (_imageTensor == null)
+            return Result<InferenceInputValue, string>.Failure("Upload an image first.");
+        return Result<InferenceInputValue, string>.Success(InferenceInputValue.Tensor(_imageTensor,
+            new[] { 1L, Field.ExpectedChannels, Field.ExpectedHeight, Field.ExpectedWidth }));
     }
 
-    private static long[] ResolveVectorShape(TensorSchema schema, int length)
+    public void Reset()
     {
-        if (schema.Shape.Count == 1)
-        {
-            return new[] { (long)length };
-        }
-
-        var shape = new long[schema.Shape.Count];
-        for (int i = 0; i < schema.Shape.Count; i++)
-        {
-            shape[i] = schema.Shape[i] ?? 0;
-        }
-        if (schema.Shape.Count == 2 && schema.Shape[1].HasValue && length == schema.Shape[1])
-        {
-            shape[0] = 1;
-        }
-        else if (shape.Any(d => d == 0))
-        {
-            // dynamic: wrap as a single row
-            return new[] { 1L, length };
-        }
-        return shape;
+        ValueText = Kind == FormFieldKind.Number ? "0" : Kind == FormFieldKind.Vector ? DefaultVector(_schema) : string.Empty;
+        ShapeText = string.Empty;
+        ImagePath = null;
+        _imageTensor = null;
+        Error = null;
     }
+
 }
 
 /// <summary>
@@ -176,6 +127,7 @@ public partial class OutputItemViewModel : ObservableObject
     public string Kind { get; }
     public string ScalarDisplay { get; }
     public bool HasScalar => !string.IsNullOrEmpty(ScalarDisplay);
+    public ObservableCollection<string> DisplayValues { get; } = new();
     public ObservableCollection<double> TopValues { get; } = new();
     public double MaxTop => TopValues.Count > 0 ? TopValues.Max() : 1.0;
 
@@ -183,8 +135,14 @@ public partial class OutputItemViewModel : ObservableObject
     {
         Name = output.Name;
         ShapeDisplay = "[" + string.Join(", ", output.Shape) + "]";
+        if (output.Type == DataType.String)
+        {
+            Kind = "Text";
+            ScalarDisplay = string.Join("\n", output.Data.Cast<string>().Take(16));
+            return;
+        }
         ScalarDisplay = output.Data.Length == 1
-            ? System.Convert.ToDouble(output.Data.GetValue(0)!).ToString("0.####")
+            ? System.Convert.ToString(output.Data.GetValue(0), CultureInfo.InvariantCulture) ?? string.Empty
             : string.Empty;
 
         var values = new List<double>();
@@ -193,10 +151,12 @@ public partial class OutputItemViewModel : ObservableObject
             values.Add(System.Convert.ToDouble(v));
         }
 
-        if (output.Shape.Count == 2 && output.Shape[0] == 1 && values.Count > 4)
+        if (output.Shape.Count == 2 && output.Shape[0] == 1 && values.Count > 4 && output.Type is DataType.Float32 or DataType.Float64 or DataType.Float16)
         {
             // Classification-like: top 5 classes
-            Kind = "Top classes";
+            Kind = "Top classes (raw scores)";
+            foreach (var item in values.Select((value, index) => (value, index)).OrderByDescending(x => x.value).Take(5))
+                DisplayValues.Add($"Class {item.index}: {item.value:G6}");
             foreach (var value in values.OrderByDescending(v => v).Take(5))
             {
                 TopValues.Add(value);
@@ -205,6 +165,7 @@ public partial class OutputItemViewModel : ObservableObject
         else if (values.Count <= 16)
         {
             Kind = "Values";
+            foreach (var value in output.Data) DisplayValues.Add(System.Convert.ToString(value, CultureInfo.InvariantCulture) ?? "");
             foreach (var value in values)
             {
                 TopValues.Add(value);
@@ -213,6 +174,7 @@ public partial class OutputItemViewModel : ObservableObject
         else
         {
             Kind = "First values";
+            foreach (var value in output.Data.Cast<object>().Take(16)) DisplayValues.Add(System.Convert.ToString(value, CultureInfo.InvariantCulture) ?? "");
             foreach (var value in values.Take(16))
             {
                 TopValues.Add(value);
@@ -289,9 +251,20 @@ public partial class InferencePlaygroundViewModel : ViewModelBase
     }
 
     [RelayCommand]
+    private void Reset()
+    {
+        foreach (var field in Fields) field.Reset();
+        Outputs.Clear();
+        HasResult = false;
+        Error = null;
+    }
+
+    [RelayCommand]
     private async Task RunInferenceAsync()
     {
         Error = null;
+        HasResult = false;
+        Outputs.Clear();
 
         // Parse and validate every field
         var inputs = new Dictionary<string, InferenceInputValue>();
@@ -311,7 +284,7 @@ public partial class InferencePlaygroundViewModel : ViewModelBase
         IsRunning = true;
         try
         {
-            var result = await _inference.RunAsync(_model, inputs).ConfigureAwait(true);
+            var result = await Task.Run(() => _inference.RunAsync(_model, inputs));
             if (result.IsFailure)
             {
                 Error = result.Error!.Message;
@@ -323,6 +296,10 @@ public partial class InferencePlaygroundViewModel : ViewModelBase
             ExecutionTimeMs = result.Value.ExecutionTimeMs;
             HasResult = true;
             _shell.ShowToast($"Inference completed in {ExecutionTimeMs} ms");
+        }
+        catch (Exception)
+        {
+            Error = "Inference could not complete. Check the inputs and try again.";
         }
         finally
         {

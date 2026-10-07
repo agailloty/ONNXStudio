@@ -102,11 +102,11 @@ public class InferenceSessionManagerTests : IDisposable
     }
 
     [Fact]
-    public void Evict_RemovesSession()
+    public async Task Evict_RemovesSession()
     {
         var manager = CreateManager(5);
         var loader = TestSetup.CreateLoader();
-        var model = loader.LoadAsync(TestSetup.FixturePath("add.onnx")).Result.Value!;
+        var model = (await loader.LoadAsync(TestSetup.FixturePath("add.onnx"))).Value!;
 
         manager.GetSession(model);
         Assert.Equal(1, manager.CachedSessionCount);

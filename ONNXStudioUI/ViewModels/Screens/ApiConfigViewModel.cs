@@ -1,5 +1,3 @@
-using System.Collections.ObjectModel;
-using System.Text;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -14,7 +12,7 @@ namespace ONNXStudioUI.ViewModels.Screens;
 /// and generate the JSON schema / example payload / cURL of its predict
 /// endpoint (matching the payload format accepted by PayloadParser).
 /// </summary>
-public partial class ApiConfigViewModel : ViewModelBase
+public partial class ApiConfigViewModel : ViewModelBase, IDisposable
 {
     private readonly MainWindowViewModel _shell;
     private readonly ApiServerHost _host;
@@ -36,12 +34,11 @@ public partial class ApiConfigViewModel : ViewModelBase
     [ObservableProperty]
     private string _curlPreview = string.Empty;
 
-    [ObservableProperty]
-    private ObservableCollection<string> _sampleValues = new();
+    [ObservableProperty] private string? _error;
 
     public OnnxModel Model => _model;
     public string EndpointPath => "/models/" + _model.Id + "/predict";
-    public string FullEndpointUrl => "POST http://localhost:" + Port + EndpointPath;
+    public string FullEndpointUrl => "POST http://localhost:" + (_host.IsRunning ? _host.Port : Port) + EndpointPath;
 
     public ApiConfigViewModel(MainWindowViewModel shell, ApiServerHost host, IToastService toast, OnnxModel model)
     {
@@ -53,22 +50,14 @@ public partial class ApiConfigViewModel : ViewModelBase
         Port = host.RequestedPort;
         IsServerRunning = host.IsRunning;
 
-        // One editable sample value per input (rank-1 arrays default to two values)
-        foreach (var input in model.Inputs)
-        {
-            SampleValues.Add(input.Shape.Count switch
-            {
-                0 => "1.0",
-                1 when input.Shape[0] is long n && n > 1 => "[0.0, 0.0]",
-                _ => "[1.0, 2.0, 3.0, 4.0]"
-            });
-        }
-
+        _host.StateChanged += OnHostChanged;
         RegeneratePreviews();
     }
 
     partial void OnPortChanged(int value)
     {
+        if (value is < 0 or > 65535) { Error = "Port must be between 0 and 65535."; return; }
+        Error = null;
         _host.RequestedPort = value;
         RegeneratePreviews();
         OnPropertyChanged(nameof(FullEndpointUrl));
@@ -101,51 +90,44 @@ public partial class ApiConfigViewModel : ViewModelBase
     [RelayCommand]
     private async Task ToggleServerAsync()
     {
-        if (_host.IsRunning)
+        try
         {
-            await _host.StopAsync().ConfigureAwait(true);
-            IsServerRunning = false;
-            _toast.Show("API server stopped");
+            if (Port is < 0 or > 65535) { Error = "Port must be between 0 and 65535."; return; }
+            Error = null;
+            if (_host.IsRunning)
+            {
+                await _host.StopAsync().ConfigureAwait(true);
+                IsServerRunning = false;
+                _toast.Show("API server stopped");
+            }
+            else
+            {
+                await _host.StartAsync().ConfigureAwait(true);
+                IsServerRunning = true;
+                _toast.Show($"API server listening on http://localhost:{_host.Port}");
+            }
         }
-        else
+        catch (Exception) { Error = "The API server could not start or stop. Check whether the port is already in use."; }
+    }
+
+    private void OnHostChanged()
+    {
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
         {
-            await _host.StartAsync().ConfigureAwait(true);
-            IsServerRunning = true;
-            _toast.Show($"API server listening on http://localhost:{_host.Port}");
-        }
+            IsServerRunning = _host.IsRunning;
+            Port = _host.RequestedPort;
+            OnPropertyChanged(nameof(FullEndpointUrl));
+            RegeneratePreviews();
+        });
     }
 
     private void RegeneratePreviews()
     {
-        var schema = new StringBuilder();
-        schema.AppendLine("{");
-        schema.AppendLine("  \"$schema\": \"http://json-schema.org/draft-07/schema#\",");
-        schema.AppendLine("  \"title\": \"" + _model.Name + " predict request\",");
-        schema.AppendLine("  \"type\": \"object\",");
-        schema.AppendLine("  \"required\": [\"inputs\"],");
-        schema.AppendLine("  \"properties\": {");
-        schema.AppendLine("    \"inputs\": {");
-        schema.AppendLine("      \"type\": \"object\",");
-        schema.AppendLine("      \"required\": [" + string.Join(", ", _model.Inputs.Select(i => $"\"{i.Name}\"")) + "],");
-        schema.AppendLine("      \"properties\": {");
-
-        var props = _model.Inputs.Select(i =>
-            $"        \"{i.Name}\": {{ \"description\": \"{i.Display}\", \"type\": [\"number\", \"array\"] }}");
-        schema.AppendLine(string.Join(",\n", props));
-        schema.AppendLine("      }");
-        schema.AppendLine("    }");
-        schema.AppendLine("  }");
-        schema.AppendLine("}");
-        JsonSchema = schema.ToString();
-
-        var payloadEntries = _model.Inputs.Select((input, i) =>
-            "    \"" + input.Name + "\": " + (i < SampleValues.Count && !string.IsNullOrWhiteSpace(SampleValues[i])
-                ? SampleValues[i]
-                : "[0.0]"));
-        ExamplePayload = "{\n  \"inputs\": {\n" + string.Join(",\n", payloadEntries) + "\n  }\n}";
-
-        CurlPreview = "curl -X POST http://localhost:" + Port + EndpointPath +
-                      " \\\n  -H \"Content-Type: application/json\" \\\n  -d '" +
-                      ExamplePayload.Replace("\n", "") + "'";
+        JsonSchema = ApiExamples.Schema(_model);
+        try { ExamplePayload = ApiExamples.Payload(_model); }
+        catch (InvalidOperationException ex) { Error = ex.Message; ExamplePayload = ""; }
+        CurlPreview = ApiExamples.Curl("POST", FullEndpointUrl[5..], ExamplePayload);
     }
+
+    public void Dispose() => _host.StateChanged -= OnHostChanged;
 }

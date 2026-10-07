@@ -22,6 +22,12 @@ public static class OnnxStudioEndpoints
 
     public static IEndpointRouteBuilder MapOnnxStudioEndpoints(this IEndpointRouteBuilder app)
     {
+        app.MapGet("/", (IModelRegistry registry) => Results.Ok(new
+        {
+            name = "ONNX Studio", version = "1.0.0", loadedModels = registry.Models.Select(m => m.Name).ToArray()
+        }));
+        app.MapGet("/openapi.json", (IModelRegistry registry) => Results.Text(OpenApiDocument.Create(registry.Models), "application/json"));
+
         app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 
         app.MapGet("/models", (IModelRegistry registry) =>
@@ -69,7 +75,7 @@ public static class OnnxStudioEndpoints
                     return Results.BadRequest(new { error = parsed.Error });
                 }
 
-                var result = await inference.RunAsync(model, parsed.Value!);
+                var result = await inference.RunAsync(model, parsed.Value!, request.HttpContext.RequestAborted);
                 if (result.IsFailure)
                 {
                     return Results.BadRequest(new
@@ -159,16 +165,20 @@ public static class OnnxStudioEndpoints
         public IReadOnlyList<TensorInfoDto> Inputs { get; init; } = Array.Empty<TensorInfoDto>();
         public IReadOnlyList<TensorInfoDto> Outputs { get; init; } = Array.Empty<TensorInfoDto>();
 
-        public string RequestExample => new
-        {
-            inputs = Inputs.ToDictionary(i => i.Name, _ => (object)new[] { 0.0 })
-        }.ToJson();
+        public string RequestExample { get; init; } = string.Empty;
 
         public static SchemaResponse From(OnnxModel m) => new()
         {
             Inputs = m.Inputs.Select(TensorInfoDto.From).ToList(),
-            Outputs = m.Outputs.Select(TensorInfoDto.From).ToList()
+            Outputs = m.Outputs.Select(TensorInfoDto.From).ToList(),
+            RequestExample = ExampleOrEmpty(m)
         };
+
+        private static string ExampleOrEmpty(OnnxModel model)
+        {
+            try { return ApiExamples.Payload(model); }
+            catch (InvalidOperationException) { return string.Empty; }
+        }
     }
 
     public sealed class PredictResponse
@@ -209,7 +219,7 @@ public static class OnnxStudioEndpoints
         private static object ConvertToScalar(TensorOutput output)
         {
             var value = output.Data.GetValue(0)!;
-            return value is bool b ? b : System.Convert.ToDouble(value);
+            return value;
         }
     }
 

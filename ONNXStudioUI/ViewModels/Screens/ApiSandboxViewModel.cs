@@ -15,6 +15,7 @@ namespace ONNXStudioUI.ViewModels.Screens;
 /// </summary>
 public partial class HistoryItemViewModel : ObservableObject
 {
+    public string Endpoint { get; init; } = string.Empty;
     public string TimeDisplay { get; init; } = string.Empty;
     public string RequestBody { get; init; } = string.Empty;
     public string ResponseBody { get; init; } = string.Empty;
@@ -28,13 +29,13 @@ public partial class HistoryItemViewModel : ObservableObject
 /// API sandbox (US-006 UI): send real HTTP requests to the embedded API
 /// server and inspect the responses.
 /// </summary>
-public partial class ApiSandboxViewModel : ViewModelBase
+public partial class ApiSandboxViewModel : ViewModelBase, IDisposable
 {
     private readonly MainWindowViewModel _shell;
     private readonly ApiServerHost _host;
     private readonly IToastService _toast;
     private readonly OnnxModel _model;
-    private readonly HttpClient _httpClient = new();
+    private readonly HttpClient _httpClient = new() { MaxResponseContentBufferSize = 10 * 1024 * 1024, Timeout = TimeSpan.FromSeconds(30) };
 
     [ObservableProperty]
     private string _requestBody = string.Empty;
@@ -57,8 +58,16 @@ public partial class ApiSandboxViewModel : ViewModelBase
     [ObservableProperty]
     private ObservableCollection<HistoryItemViewModel> _history = new();
 
+    [ObservableProperty] private string _selectedEndpoint = string.Empty;
+    [ObservableProperty] private string _responseHeaders = string.Empty;
+    public IReadOnlyList<string> Endpoints { get; }
+    public bool RequiresBody => SelectedEndpoint.StartsWith("POST ", StringComparison.Ordinal);
+    public string CurlPreview => ApiExamples.Curl(RequiresBody ? "POST" : "GET", EndpointUrl, RequestBody);
+    public bool IsSuccess => StatusCode is >= 200 and < 300;
+    public Avalonia.Media.IBrush StatusBrush => StatusCode is >= 200 and < 300 ? Avalonia.Media.Brushes.ForestGreen
+        : StatusCode is >= 300 and < 400 ? Avalonia.Media.Brushes.DarkOrange : Avalonia.Media.Brushes.IndianRed;
     public OnnxModel Model => _model;
-    public string EndpointUrl => $"http://localhost:{_host.Port}/models/{_model.Id}/predict";
+    public string EndpointUrl => $"http://localhost:{(_host.IsRunning ? _host.Port : _host.RequestedPort)}" + SelectedEndpoint[(SelectedEndpoint.IndexOf(' ') + 1)..];
     public bool IsServerRunning => _host.IsRunning;
 
     public ApiSandboxViewModel(MainWindowViewModel shell, ApiServerHost host, IToastService toast, OnnxModel model)
@@ -69,11 +78,27 @@ public partial class ApiSandboxViewModel : ViewModelBase
         _model = model;
         Title = model.Name + " - Sandbox";
 
-        // Default request body: one sample value per input
-        var entries = model.Inputs.Select(i =>
-            "    \"" + i.Name + "\": " + (i.Shape.Count <= 1 ? "1.0" : "[1.0, 2.0, 3.0, 4.0]"));
-        RequestBody = "{\n  \"inputs\": {\n" + string.Join(",\n", entries) + "\n  }\n}";
+        Endpoints = new[] { $"POST /models/{model.Id}/predict", "GET /models", $"GET /models/{model.Id}", $"GET /models/{model.Id}/schema", "GET /health", "GET /", "GET /openapi.json" };
+        SelectedEndpoint = Endpoints[0];
+        try { RequestBody = ApiExamples.Payload(model); }
+        catch (InvalidOperationException ex) { ResponseBody = ex.Message; HasResponse = true; }
+        _host.StateChanged += OnHostChanged;
     }
+
+    partial void OnSelectedEndpointChanged(string value)
+    {
+        OnPropertyChanged(nameof(EndpointUrl));
+        OnPropertyChanged(nameof(RequiresBody));
+        OnPropertyChanged(nameof(CurlPreview));
+    }
+    partial void OnRequestBodyChanged(string value) => OnPropertyChanged(nameof(CurlPreview));
+    partial void OnStatusCodeChanged(int value) { OnPropertyChanged(nameof(IsSuccess)); OnPropertyChanged(nameof(StatusBrush)); }
+    private void OnHostChanged() => Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+    {
+        OnPropertyChanged(nameof(IsServerRunning));
+        OnPropertyChanged(nameof(EndpointUrl));
+        OnPropertyChanged(nameof(CurlPreview));
+    });
 
     [RelayCommand]
     private void Back()
@@ -102,63 +127,73 @@ public partial class ApiSandboxViewModel : ViewModelBase
     [RelayCommand]
     private async Task SendAsync()
     {
-        if (IsSending)
-        {
-            return;
-        }
-
-        if (!_host.IsRunning)
-        {
-            await _host.StartAsync().ConfigureAwait(true);
-            OnPropertyChanged(nameof(IsServerRunning));
-        }
-
+        if (IsSending) return;
         IsSending = true;
+        StatusCode = 0;
+        ElapsedMs = 0;
+        HasResponse = false;
+        ResponseHeaders = string.Empty;
+        var endpoint = SelectedEndpoint;
+        var requestBody = RequestBody;
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         try
         {
-            using var content = new StringContent(RequestBody, Encoding.UTF8, "application/json");
-            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-            using var response = await _httpClient.PostAsync(EndpointUrl, content).ConfigureAwait(true);
-            stopwatch.Stop();
-
-            var body = await response.Content.ReadAsStringAsync().ConfigureAwait(true);
-
+            if (RequiresBody) { using var json = System.Text.Json.JsonDocument.Parse(requestBody); }
+            if (!_host.IsRunning) await _host.StartAsync();
+            using var request = new HttpRequestMessage(RequiresBody ? HttpMethod.Post : HttpMethod.Get, EndpointUrl);
+            if (RequiresBody) request.Content = new StringContent(requestBody, Encoding.UTF8, "application/json");
+            using var response = await _httpClient.SendAsync(request);
+            var body = await response.Content.ReadAsStringAsync();
             StatusCode = (int)response.StatusCode;
-            ResponseBody = body;
-            ElapsedMs = stopwatch.ElapsedMilliseconds;
-            HasResponse = true;
-
-            History.Insert(0, new HistoryItemViewModel
+            ResponseHeaders = string.Join("\n", response.Headers.Concat(response.Content.Headers).Select(h => h.Key + ": " + string.Join(", ", h.Value)));
+            try
             {
-                TimeDisplay = System.DateTime.Now.ToString("HH:mm:ss"),
-                RequestBody = RequestBody,
-                ResponseBody = body,
-                StatusCode = StatusCode,
-                ElapsedMs = ElapsedMs
-            });
-            while (History.Count > 10)
-            {
-                History.RemoveAt(History.Count - 1);
+                var json = System.Text.Json.Nodes.JsonNode.Parse(body);
+                ResponseBody = json?.ToJsonString(new System.Text.Json.JsonSerializerOptions { WriteIndented = true }) ?? body;
             }
-
-            _toast.Show($"{StatusCode} in {ElapsedMs} ms");
+            catch (System.Text.Json.JsonException) { ResponseBody = body; }
         }
-        catch (System.Exception ex)
+        catch (System.Text.Json.JsonException)
+        {
+            ResponseBody = "Invalid JSON. Correct the request body before sending.";
+        }
+        catch (Exception ex)
         {
             ResponseBody = "Request failed: " + ex.Message;
-            HasResponse = true;
         }
         finally
         {
+            stopwatch.Stop();
+            ElapsedMs = stopwatch.ElapsedMilliseconds;
+            HasResponse = true;
             IsSending = false;
         }
+        History.Insert(0, new HistoryItemViewModel
+        {
+            Endpoint = endpoint,
+            TimeDisplay = DateTime.Now.ToString("HH:mm:ss"),
+            RequestBody = requestBody,
+            ResponseBody = ResponseBody,
+            StatusCode = StatusCode,
+            ElapsedMs = ElapsedMs
+        });
+        foreach (var old in History.Where(h => h.Endpoint == endpoint).Skip(10).ToArray()) History.Remove(old);
+        _toast.Show(StatusCode == 0 ? "Request failed" : $"{StatusCode} in {ElapsedMs} ms");
     }
 
     [RelayCommand]
-    private void Rerun(HistoryItemViewModel item)
+    private async Task RerunAsync(HistoryItemViewModel item)
     {
+        if (IsSending) return;
+        SelectedEndpoint = item.Endpoint;
         RequestBody = item.RequestBody;
-        _ = SendAsync();
+        await SendAsync();
+    }
+
+    public void Dispose()
+    {
+        _host.StateChanged -= OnHostChanged;
+        _httpClient.Dispose();
     }
 
     [RelayCommand]

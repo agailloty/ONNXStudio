@@ -59,7 +59,8 @@ public sealed class InferenceService : IInferenceService
         await _concurrencyGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            var session = _sessionManager.GetSession(model);
+            using var lease = _sessionManager.Acquire(model);
+            var session = lease.Session;
 
             var ortInputs = new Dictionary<string, OrtValue>();
             try
@@ -71,6 +72,7 @@ public sealed class InferenceService : IInferenceService
 
                 var stopwatch = Stopwatch.StartNew();
                 using var runOptions = new RunOptions();
+                using var cancellation = cancellationToken.Register(() => runOptions.Terminate = true);
                 var outputNames = session.OutputNames;
                 using var rawOutputs = session.Run(runOptions, ortInputs, outputNames);
                 stopwatch.Stop();
@@ -96,7 +98,7 @@ public sealed class InferenceService : IInferenceService
             _logger.LogError(ex, "Inference failed on {Model}", model.Name);
             return Result<InferenceResult, InferenceError>.Failure(
                 new InferenceError(InferenceErrorCode.InferenceFailed,
-                    "Inference failed: " + ex.Message, ex.Message, ex));
+                    "Inference failed. Check the tensor types and dimensions against the model schema.", ex.Message, ex));
         }
         catch (Exception ex)
         {
@@ -123,7 +125,7 @@ public sealed class InferenceService : IInferenceService
             // Scalar input is valid for any 1-element tensor
             if (value.Shape is null)
             {
-                if (value.Data.Length != 1)
+                if (value.Data.Length != 1 || schema.Shape.Any(d => d is not (null or 1)))
                 {
                     return new InferenceError(InferenceErrorCode.InvalidInput,
                         $"The input '{schema.Name}' expects a single value.",
@@ -142,15 +144,21 @@ public sealed class InferenceService : IInferenceService
             for (int i = 0; i < value.Shape.Length; i++)
             {
                 var expected = schema.Shape[i];
-                if (expected.HasValue && expected.Value != value.Shape[i])
+                if (value.Shape[i] <= 0 || (expected.HasValue && expected.Value != value.Shape[i]))
                 {
                     return new InferenceError(InferenceErrorCode.ShapeMismatch,
-                        $"The input '{schema.Name}' expects dimension {i} = {expected.Value} but received {value.Shape[i]}.",
+                        $"The input '{schema.Name}' expects dimension {i} = {expected?.ToString() ?? "a positive size"} but received {value.Shape[i]}.",
                         $"Expected {schema.ToDisplayString()}, got shape [{string.Join(", ", value.Shape)}]");
                 }
             }
 
-            var elementCount = value.Shape.Aggregate(1L, (a, b) => a * b);
+            long elementCount = 1;
+            foreach (var dimension in value.Shape)
+            {
+                if (elementCount > long.MaxValue / dimension)
+                    return new InferenceError(InferenceErrorCode.InvalidInput, $"The shape of '{schema.Name}' is too large.");
+                elementCount *= dimension;
+            }
             if (elementCount != value.Data.Length)
             {
                 return new InferenceError(InferenceErrorCode.InvalidInput,
@@ -162,10 +170,21 @@ public sealed class InferenceService : IInferenceService
 
     private static OrtValue CreateOrtValue(TensorSchema schema, InferenceInputValue value)
     {
-        var dimensions = value.Shape ?? new[] { 1L };
+        var dimensions = value.Shape ?? schema.Shape.Select(d => d ?? 1L).ToArray();
 
         switch (schema.Type)
         {
+            case DataType.Float16:
+                return OrtValue.CreateTensorValueFromMemory(ToArray<float>(value.Data).Select(v => (Float16)v).ToArray(), dimensions);
+            case DataType.String:
+                return OrtValue.CreateFromStringTensor(new Microsoft.ML.OnnxRuntime.Tensors.DenseTensor<string>(
+                    (string[])value.Data, dimensions.Select(d => checked((int)d)).ToArray()));
+            case DataType.Uint16:
+                return OrtValue.CreateTensorValueFromMemory(ToArray<ushort>(value.Data), dimensions);
+            case DataType.Uint32:
+                return OrtValue.CreateTensorValueFromMemory(ToArray<uint>(value.Data), dimensions);
+            case DataType.Uint64:
+                return OrtValue.CreateTensorValueFromMemory(ToArray<ulong>(value.Data), dimensions);
             case DataType.Float32:
                 return OrtValue.CreateTensorValueFromMemory(ToArray<float>(value.Data), dimensions);
             case DataType.Float64:
@@ -221,6 +240,30 @@ public sealed class InferenceService : IInferenceService
 
             switch (type)
             {
+                case DataType.Float16:
+                    outputs.Add(new TensorOutput(name, type, shape, ortValue.GetTensorDataAsSpan<Float16>().ToArray().Select(v => (float)v).ToArray()));
+                    break;
+                case DataType.String:
+                    outputs.Add(new TensorOutput(name, type, shape, ortValue.GetStringTensorAsArray()));
+                    break;
+                case DataType.Int8:
+                    outputs.Add(new TensorOutput(name, type, shape, ortValue.GetTensorDataAsSpan<sbyte>().ToArray()));
+                    break;
+                case DataType.Int16:
+                    outputs.Add(new TensorOutput(name, type, shape, ortValue.GetTensorDataAsSpan<short>().ToArray()));
+                    break;
+                case DataType.Uint8:
+                    outputs.Add(new TensorOutput(name, type, shape, ortValue.GetTensorDataAsSpan<byte>().ToArray()));
+                    break;
+                case DataType.Uint16:
+                    outputs.Add(new TensorOutput(name, type, shape, ortValue.GetTensorDataAsSpan<ushort>().ToArray()));
+                    break;
+                case DataType.Uint32:
+                    outputs.Add(new TensorOutput(name, type, shape, ortValue.GetTensorDataAsSpan<uint>().ToArray()));
+                    break;
+                case DataType.Uint64:
+                    outputs.Add(new TensorOutput(name, type, shape, ortValue.GetTensorDataAsSpan<ulong>().ToArray()));
+                    break;
                 case DataType.Float64:
                     outputs.Add(new TensorOutput(name, type, shape, ortValue.GetTensorDataAsSpan<double>().ToArray()));
                     break;

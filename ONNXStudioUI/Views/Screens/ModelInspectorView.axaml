@@ -96,25 +96,10 @@
                         </StackPanel>
                     </Border>
 
-                    <ScrollViewer>
-                        <ItemsControl ItemsSource="{Binding Nodes}" Margin="12">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <WrapPanel/>
-                                </ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="vm:NodeItemViewModel">
-                                    <Button Classes="graph-node"
-                                            BorderBrush="{Binding CategoryBrush}"
-                                            Content="{Binding OpType}"
-                                            ToolTip.Tip="{Binding Tooltip}"
-                                            Command="{Binding $parent[ItemsControl].((vm:ModelInspectorViewModel)DataContext).SelectNodeCommand}"
-                                            CommandParameter="{Binding}"/>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </ScrollViewer>
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Bottom" Text="Scroll to zoom ? Drag to pan ? Click a node to inspect" Margin="12" Classes="body-small"/>
+                        <controls:GraphViewer Nodes="{Binding Nodes}" Graph="{Binding Model.Graph}" SelectNodeCommand="{Binding SelectNodeCommand}" MinHeight="240"/>
+                    </DockPanel>
                 </DockPanel>
             </Border>
 

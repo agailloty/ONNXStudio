@@ -64,7 +64,7 @@
                                 <TextBlock Text="Running" Classes="body-small" IsVisible="{Binding IsServerRunning}"/>
                                 <TextBlock Text="Stopped" Classes="body-small" IsVisible="{Binding !IsServerRunning}"/>
                             </StackPanel>
-                            <Button Grid.Column="3"
+                            <Button Grid.Column="4"
                                     Classes="danger"
                                     Command="{Binding ToggleServerCommand}"
                                     IsVisible="{Binding IsServerRunning}">
@@ -77,8 +77,8 @@
                                 <TextBlock Text="Start server"/>
                             </Button>
                         </Grid>
-                        <TextBlock Classes="body-small"
-                                   Text="Starts a Kestrel server inside the app (modular monolith: same process as the UI). The predict endpoint below becomes available for external clients."/>
+                        <TextBlock Text="{Binding Error}" Foreground="{DynamicResource ErrorBrush}" TextWrapping="Wrap"/>
+                        <TextBlock Classes="body-small" Text="Serve loaded models through a local HTTP API. Port changes apply on the next start; 0 selects an available port."/>
                     </StackPanel>
                 </GroupBox>
 

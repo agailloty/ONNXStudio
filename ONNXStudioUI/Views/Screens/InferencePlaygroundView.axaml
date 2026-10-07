@@ -63,7 +63,8 @@
 
                     <ScrollViewer>
                         <StackPanel Margin="16,0,16,16" Spacing="12">
-                            <ItemsControl ItemsSource="{Binding Fields}">
+                            <Button Content="Reset inputs" Command="{Binding ResetCommand}" IsEnabled="{Binding !IsRunning}"/>
+                            <ItemsControl ItemsSource="{Binding Fields}" IsEnabled="{Binding !IsRunning}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate x:DataType="vm:PlaygroundFieldViewModel">
                                         <Border Background="{DynamicResource SurfaceElevatedBrush}"
@@ -76,6 +77,9 @@
                                                     <TextBlock Text="{Binding TypeDisplay}" Classes="body-small" VerticalAlignment="Center"/>
                                                 </StackPanel>
 
+                                                <TextBox Text="{Binding ShapeText, Mode=TwoWay}"
+                                                         IsVisible="{Binding HasDynamicShape}"
+                                                         PlaceholderText="Shape (e.g. 2, 3); leave blank to infer one dimension"/>
                                                 <!-- Number -->
                                                 <TextBox Text="{Binding ValueText, Mode=TwoWay}"
                                                          IsVisible="{Binding IsNumber}"/>
@@ -168,10 +172,10 @@
                                                            IsVisible="{Binding HasScalar}"/>
 
                                                 <!-- Values -->
-                                                <ItemsControl ItemsSource="{Binding TopValues}">
+                                                <ItemsControl ItemsSource="{Binding DisplayValues}">
                                                     <ItemsControl.ItemTemplate>
-                                                        <DataTemplate x:DataType="x:Double">
-                                                            <TextBlock Text="{Binding StringFormat='{}{0:0.####}'}"
+                                                        <DataTemplate x:DataType="x:String">
+                                                            <TextBlock Text="{Binding}"
                                                                        Classes="code"
                                                                        Margin="0,1"/>
                                                         </DataTemplate>

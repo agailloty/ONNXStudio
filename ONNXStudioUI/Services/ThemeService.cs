@@ -22,7 +22,7 @@ public interface IThemeService
 
 public sealed class ThemeService : IThemeService
 {
-    private AppTheme _current = AppTheme.Light;
+    private AppTheme _current = AppTheme.Dark;
 
     public AppTheme Current => _current;
 
@@ -36,7 +36,7 @@ public sealed class ThemeService : IThemeService
             {
                 AppTheme.Dark => ThemeVariant.Dark,
                 AppTheme.Light => ThemeVariant.Light,
-                _ => null // follow the system
+                _ => ThemeVariant.Default // follow the system
             };
         }
     }

@@ -18,6 +18,7 @@ public partial class SettingsViewModel : ViewModelBase
     private readonly IThemeService _theme;
     private readonly IToastService _toast;
     private readonly ApiServerHost _apiHost;
+    private readonly SettingsStore _store;
 
     [ObservableProperty]
     private AppTheme _selectedTheme;
@@ -28,12 +29,13 @@ public partial class SettingsViewModel : ViewModelBase
     public IReadOnlyList<AppTheme> Themes { get; } = new[] { AppTheme.Light, AppTheme.Dark, AppTheme.System };
     public string AppVersion => "1.0.0";
 
-    public SettingsViewModel(MainWindowViewModel shell, IThemeService theme, IToastService toast, ApiServerHost apiHost)
+    public SettingsViewModel(MainWindowViewModel shell, IThemeService theme, IToastService toast, ApiServerHost apiHost, SettingsStore store)
     {
         _shell = shell;
         _theme = theme;
         _toast = toast;
         _apiHost = apiHost;
+        _store = store;
         Title = "Settings";
 
         SelectedTheme = _theme.Current;
@@ -49,7 +51,7 @@ public partial class SettingsViewModel : ViewModelBase
     partial void OnApiPortChanged(int value)
     {
         // Applied to the next server start
-        _apiHost.RequestedPort = value;
+        if (value is >= 0 and <= 65535) _apiHost.RequestedPort = value;
     }
 
     [RelayCommand]
@@ -61,7 +63,15 @@ public partial class SettingsViewModel : ViewModelBase
     [RelayCommand]
     private void Save()
     {
-        // TODO: persist to appsettings.json
-        _toast.Show("Settings saved");
+        if (ApiPort is < 0 or > 65535) { _toast.Show("Port must be between 0 and 65535."); return; }
+        try
+        {
+            _store.Save(SelectedTheme, ApiPort);
+            _toast.Show("Settings saved");
+        }
+        catch (Exception ex) when (ex is System.IO.IOException or UnauthorizedAccessException)
+        {
+            _toast.Show("Settings could not be saved. Check folder permissions.");
+        }
     }
 }

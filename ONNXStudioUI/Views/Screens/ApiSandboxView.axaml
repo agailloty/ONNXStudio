@@ -51,6 +51,7 @@
                     CornerRadius="8">
                 <DockPanel>
                     <StackPanel DockPanel.Dock="Top" Margin="16,12" Spacing="8">
+                        <ComboBox ItemsSource="{Binding Endpoints}" SelectedItem="{Binding SelectedEndpoint}" IsEnabled="{Binding !IsSending}"/>
                         <TextBlock Text="{Binding EndpointUrl}" Classes="code"/>
                         <Button Classes="primary"
                                 Command="{Binding SendCommand}"
@@ -65,7 +66,7 @@
 
                     <ScrollViewer>
                         <StackPanel Margin="16,0,16,16" Spacing="12">
-                            <GroupBox Header="Request body">
+                            <GroupBox Header="Request body" IsVisible="{Binding RequiresBody}" IsEnabled="{Binding !IsSending}">
                                 <TextBox Text="{Binding RequestBody, Mode=TwoWay}"
                                          AcceptsReturn="True"
                                          FontFamily="{DynamicResource CodeFontFamily}"
@@ -73,15 +74,17 @@
                                          MinHeight="140"/>
                             </GroupBox>
 
+                            <GroupBox Header="cURL"><TextBox Text="{Binding CurlPreview, Mode=OneWay}" IsReadOnly="True" AcceptsReturn="True"/></GroupBox>
                             <GroupBox Header="Response"
                                       IsVisible="{Binding HasResponse}">
                                 <StackPanel Spacing="8">
                                     <StackPanel Orientation="Horizontal" Spacing="12">
                                         <TextBlock Text="{Binding StatusCode}"
                                                    FontWeight="Bold"
-                                                   Foreground="{DynamicResource SuccessBrush}"/>
+                                                   Foreground="{Binding StatusBrush}"/>
                                         <TextBlock Text="{Binding ElapsedMs, StringFormat='{}{0} ms'}" Classes="body-small"/>
                                     </StackPanel>
+                                    <TextBlock Text="{Binding ResponseHeaders}" Classes="code" TextWrapping="Wrap"/>
                                     <TextBox Text="{Binding ResponseBody, Mode=OneWay}"
                                              IsReadOnly="True"
                                              AcceptsReturn="True"

@@ -73,7 +73,7 @@ public sealed class FilePickerService : IFilePickerService
             AllowMultiple = false,
             FileTypeFilter = new[]
             {
-                new FilePickerFileType("Image") { Patterns = new[] { "*.png", "*.jpg", "*.jpeg", "*.bmp" } }
+                new FilePickerFileType("Image") { Patterns = new[] { "*.png", "*.jpg", "*.jpeg", "*.bmp", "*.webp" } }
             }
         });
 

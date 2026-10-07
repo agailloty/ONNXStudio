@@ -87,7 +87,8 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             this,
             _services.GetRequiredService<IThemeService>(),
             _services.GetRequiredService<IToastService>(),
-            _services.GetRequiredService<ONNXStudio.Api.ApiServerHost>());
+            _services.GetRequiredService<ONNXStudio.Api.ApiServerHost>(),
+            _services.GetRequiredService<SettingsStore>());
     }
 
     /// <summary>
@@ -165,6 +166,14 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         Avalonia.Threading.Dispatcher.UIThread.Post(() =>
         {
             Models.Remove(model);
+            foreach (var key in _screenCache.Keys.Where(k => k.EndsWith(":" + model.Id, StringComparison.Ordinal)).ToArray())
+            {
+                if (_screenCache.Remove(key, out var screen))
+                {
+                    if (screen is IDisposable disposable) disposable.Dispose();
+                    if (ReferenceEquals(CurrentViewModel, screen)) ShowDashboard();
+                }
+            }
             StatusMessage = $"Model '{model.Name}' unloaded";
         });
     }
@@ -178,7 +187,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
 
     private void OnToastChanged()
     {
-        ToastMessage = _toast.Current;
+        Avalonia.Threading.Dispatcher.UIThread.Post(() => ToastMessage = _toast.Current);
     }
 
     public void ShowToast(string message) => _toast.Show(message);
@@ -188,5 +197,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         _registry.ModelAdded -= OnModelAdded;
         _registry.ModelRemoved -= OnModelRemoved;
         _toast.ToastChanged -= OnToastChanged;
+        foreach (var screen in _screenCache.Values.OfType<IDisposable>()) screen.Dispose();
+        _screenCache.Clear();
     }
 }

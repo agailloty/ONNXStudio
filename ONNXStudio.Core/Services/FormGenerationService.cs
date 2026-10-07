@@ -67,7 +67,7 @@ public sealed class FormGenerationService : IFormGenerationService
     {
         var rank = input.Shape.Count;
         var staticDims = input.Shape.Where(d => d.HasValue).Select(d => d!.Value).ToList();
-        var elementCount = staticDims.Count > 0 ? staticDims.Aggregate(1L, (a, b) => a * b) : 1;
+        var elementCount = staticDims.Aggregate(1L, (a, b) => b <= 0 || a > long.MaxValue / b ? long.MaxValue : a * b);
 
         // String tensors -> text input
         if (input.Type == DataType.String)
@@ -82,7 +82,8 @@ public sealed class FormGenerationService : IFormGenerationService
         }
 
         // Rank 4 image tensor [1, C, H, W] -> image input
-        if (rank == 4 && input.Type == DataType.Float32 && input.Shape[0] is 1 or null)
+        if (rank == 4 && input.Type == DataType.Float32 && input.Shape[0] is 1 or null && input.Shape[1] is 1 or 3 or 4
+            && input.Shape.Skip(2).All(d => d is null or > 0 and <= 16384))
         {
             var channels = (int)(input.Shape[1] ?? 3);
             var height = (int)(input.Shape[2] ?? 224);
@@ -98,7 +99,7 @@ public sealed class FormGenerationService : IFormGenerationService
         }
 
         // Rank 0 or 1 element -> number input
-        if (rank == 0 || elementCount == 1)
+        if (rank == 0 || (!input.HasDynamicDimension && elementCount == 1))
         {
             return new FormField(input.Name, input.Name, FormFieldKind.Number,
                 input.ToDisplayString(), input.ToDisplayString())

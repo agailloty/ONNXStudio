@@ -56,117 +56,51 @@ public static class PayloadParser
 
     private static Result<InferenceInputValue, string> ParseValue(JsonElement element, TensorSchema schema)
     {
-        switch (element.ValueKind)
+        try
         {
-            case JsonValueKind.Number:
-                return Result<InferenceInputValue, string>.Success(
-                    InferenceInputValue.Scalar(element.GetDouble()));
-
-            case JsonValueKind.Array:
-                return ParseArray(element, schema);
-
-            default:
-                return Result<InferenceInputValue, string>.Failure("expected a number or an array of numbers");
+            var leaves = new List<JsonElement>();
+            var shape = Collect(element, leaves);
+            if (shape.Length == 1 && schema.Shape.Count != 1 && !schema.HasDynamicDimension)
+                shape = schema.Shape.Select(d => d!.Value).ToArray();
+            if (shape.Length == 0)
+                shape = schema.Shape.Select(d => d ?? 1).ToArray();
+            Array data = schema.Type switch
+            {
+                DataType.String => leaves.Select(e => e.GetString() ?? "").ToArray(),
+                DataType.Bool => leaves.Select(e => e.GetBoolean()).ToArray(),
+                DataType.Int64 => leaves.Select(e => e.GetInt64()).ToArray(),
+                DataType.Int32 => leaves.Select(e => e.GetInt32()).ToArray(),
+                DataType.Int16 => leaves.Select(e => e.GetInt16()).ToArray(),
+                DataType.Int8 => leaves.Select(e => e.GetSByte()).ToArray(),
+                DataType.Uint8 => leaves.Select(e => e.GetByte()).ToArray(),
+                DataType.Uint16 => leaves.Select(e => e.GetUInt16()).ToArray(),
+                DataType.Uint32 => leaves.Select(e => e.GetUInt32()).ToArray(),
+                DataType.Uint64 => leaves.Select(e => e.GetUInt64()).ToArray(),
+                _ => leaves.Select(e => e.GetDouble()).ToArray()
+            };
+            return Result<InferenceInputValue, string>.Success(new InferenceInputValue(data, shape));
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or FormatException or OverflowException)
+        {
+            return Result<InferenceInputValue, string>.Failure($"Expected a rectangular tensor of {schema.Type.ToDisplayName()} values. {ex.Message}");
         }
     }
 
-    private static Result<InferenceInputValue, string> ParseArray(JsonElement array, TensorSchema schema)
+    private static long[] Collect(JsonElement element, List<JsonElement> leaves)
     {
-        // Nested arrays => infer the shape recursively
-        if (array.EnumerateArray().FirstOrDefault().ValueKind == JsonValueKind.Array)
+        if (element.ValueKind != JsonValueKind.Array)
         {
-            var (flat, shape) = Flatten(array);
-            if (flat is null)
-            {
-                return Result<InferenceInputValue, string>.Failure("nested arrays must only contain numbers");
-            }
-            return Result<InferenceInputValue, string>.Success(InferenceInputValue.Array(flat, shape));
+            leaves.Add(element);
+            return Array.Empty<long>();
         }
-
-        // Flat array of numbers
-        var data = new List<double>();
-        foreach (var item in array.EnumerateArray())
+        long[]? childShape = null;
+        foreach (var child in element.EnumerateArray())
         {
-            if (item.ValueKind != JsonValueKind.Number)
-            {
-                return Result<InferenceInputValue, string>.Failure("arrays must only contain numbers");
-            }
-            data.Add(item.GetDouble());
+            var current = Collect(child, leaves);
+            if (childShape != null && !childShape.SequenceEqual(current))
+                throw new FormatException("Nested array dimensions must be consistent.");
+            childShape = current;
         }
-
-        // Rank 1 tensors use [length]; higher ranks reuse the schema shape
-        if (schema.Shape.Count == 1)
-        {
-            return Result<InferenceInputValue, string>.Success(
-                InferenceInputValue.Array(data.ToArray(), new[] { (long)data.Count }));
-        }
-
-        var dims = new long[schema.Shape.Count];
-        for (int i = 0; i < schema.Shape.Count; i++)
-        {
-            if (!schema.Shape[i].HasValue)
-            {
-                return Result<InferenceInputValue, string>.Failure(
-                    $"flat arrays are not supported for dynamic input '{schema.Name}' with rank {schema.Shape.Count}; send a nested array");
-            }
-            dims[i] = schema.Shape[i]!.Value;
-        }
-
-        return Result<InferenceInputValue, string>.Success(InferenceInputValue.Array(data.ToArray(), dims));
-    }
-
-    private static (double[]? Flat, long[] Shape) Flatten(JsonElement element)
-    {
-        // Phase 1: infer the shape by walking the leftmost branch
-        var dims = new List<long>();
-        var probe = element;
-        while (probe.ValueKind == JsonValueKind.Array)
-        {
-            long length = probe.GetArrayLength();
-            if (length == 0)
-            {
-                return (Array.Empty<double>(), new[] { 0L });
-            }
-            dims.Add(length);
-            probe = probe.EnumerateArray().First();
-        }
-
-        if (probe.ValueKind != JsonValueKind.Number)
-        {
-            return (null, Array.Empty<long>());
-        }
-
-        // Phase 2: flatten all values, validating the structure
-        var flat = new List<double>();
-        if (!FlattenInto(element, flat))
-        {
-            return (null, Array.Empty<long>());
-        }
-
-        var expected = dims.Count > 0 ? dims.Aggregate(1L, (a, b) => a * b) : 1;
-        return expected == flat.Count
-            ? (flat.ToArray(), dims.ToArray())
-            : (null, Array.Empty<long>());
-    }
-
-    private static bool FlattenInto(JsonElement element, List<double> flat)
-    {
-        switch (element.ValueKind)
-        {
-            case JsonValueKind.Number:
-                flat.Add(element.GetDouble());
-                return true;
-            case JsonValueKind.Array:
-                foreach (var item in element.EnumerateArray())
-                {
-                    if (!FlattenInto(item, flat))
-                    {
-                        return false;
-                    }
-                }
-                return true;
-            default:
-                return false;
-        }
+        return new[] { (long)element.GetArrayLength() }.Concat(childShape ?? Array.Empty<long>()).ToArray();
     }
 }

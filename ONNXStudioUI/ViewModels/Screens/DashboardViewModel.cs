@@ -15,6 +15,8 @@ public partial class DashboardViewModel : ViewModelBase
 {
     private readonly MainWindowViewModel _shell;
     private readonly IModelRegistry _registry;
+    private readonly IModelLoadCoordinator _loader;
+    private readonly ONNXStudioUI.Services.IFilePickerService _picker;
 
     [ObservableProperty]
     private ObservableCollection<OnnxModel> _filteredModels = new();
@@ -25,15 +27,20 @@ public partial class DashboardViewModel : ViewModelBase
     [ObservableProperty]
     private string _selectedSort = "Recently loaded";
 
-    public DashboardViewModel(MainWindowViewModel shell, IModelRegistry registry)
+    public DashboardViewModel(MainWindowViewModel shell, IModelRegistry registry, IModelLoadCoordinator loader, ONNXStudioUI.Services.IFilePickerService picker)
     {
         _shell = shell;
         _registry = registry;
+        _loader = loader;
+        _picker = picker;
         Title = "Dashboard";
         Refresh();
     }
 
     public IReadOnlyList<string> SortOptions { get; } = new[] { "Recently loaded", "Name", "Size" };
+
+    [RelayCommand]
+    private async Task OpenModelsAsync() => await _loader.LoadManyAsync(await _picker.PickModelFilesAsync());
 
     partial void OnSearchTextChanged(string value) => Refresh();
     partial void OnSelectedSortChanged(string value) => Refresh();

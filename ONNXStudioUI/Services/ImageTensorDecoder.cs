@@ -14,6 +14,8 @@ public static class ImageTensorDecoder
 {
     public static float[] DecodeToChw(string path, int channels, int width, int height)
     {
+        if (channels is not (1 or 3 or 4) || width <= 0 || height <= 0)
+            throw new ArgumentException("Expected a positive image size and 1, 3 or 4 channels.");
         using var source = new Bitmap(path);
         using var resized = new RenderTargetBitmap(new PixelSize(width, height));
 
@@ -48,6 +50,8 @@ public static class ImageTensorDecoder
 
                 // RenderTargetBitmap is Bgra8888
                 tensor[0 * width * height + offset] = pixels[pixelIndex + 2] / 255f; // R
+                if (channels == 1)
+                    tensor[offset] = (0.299f * pixels[pixelIndex + 2] + 0.587f * pixels[pixelIndex + 1] + 0.114f * pixels[pixelIndex]) / 255f;
                 if (channels > 1)
                 {
                     tensor[1 * width * height + offset] = pixels[pixelIndex + 1] / 255f; // G
@@ -56,6 +60,7 @@ public static class ImageTensorDecoder
                 {
                     tensor[2 * width * height + offset] = pixels[pixelIndex + 0] / 255f; // B
                 }
+                if (channels == 4) tensor[3 * width * height + offset] = pixels[pixelIndex + 3] / 255f;
             }
         }
 

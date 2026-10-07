@@ -30,6 +30,9 @@ public partial class App : Application
     public override void OnFrameworkInitializationCompleted()
     {
         Services = BuildServices();
+        var settings = Services.GetRequiredService<SettingsStore>().Load();
+        Services.GetRequiredService<IThemeService>().Apply(settings.Theme);
+        Services.GetRequiredService<ApiServerHost>().RequestedPort = settings.Port;
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
@@ -44,7 +47,7 @@ public partial class App : Application
             {
                 if (Services is ServiceProvider provider)
                 {
-                    provider.Dispose();
+                    provider.DisposeAsync().AsTask().GetAwaiter().GetResult();
                 }
             };
 
@@ -83,6 +86,7 @@ public partial class App : Application
 
         // UI services
         services.AddSingleton<IThemeService, ThemeService>();
+        services.AddSingleton<SettingsStore>();
         services.AddSingleton<IToastService, ToastService>();
         services.AddSingleton<FilePickerService>();
         services.AddSingleton<IFilePickerService>(sp => sp.GetRequiredService<FilePickerService>());

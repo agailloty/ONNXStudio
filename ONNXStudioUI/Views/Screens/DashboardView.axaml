@@ -30,10 +30,10 @@
                         </StackPanel>
                     </Button>
                     <Button Classes="primary"
-                            Command="{Binding RefreshCommand}">
+                            Command="{Binding OpenModelsCommand}">
                         <StackPanel Orientation="Horizontal" Spacing="6">
                             <PathIcon Data="{StaticResource IconPlus}" Width="14" Height="14"/>
-                            <TextBlock Text="Refresh"/>
+                            <TextBlock Text="Open models"/>
                         </StackPanel>
                     </Button>
                 </StackPanel>
