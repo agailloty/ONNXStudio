@@ -29,21 +29,6 @@ public partial class NodeItemViewModel : ObservableObject
 }
 
 /// <summary>
-/// Key/value pair for the node attribute table.
-/// </summary>
-public sealed class AttributeEntry
-{
-    public AttributeEntry(string key, string value)
-    {
-        Key = key;
-        Value = value;
-    }
-
-    public string Key { get; }
-    public string Value { get; }
-}
-
-/// <summary>
 /// Model inspector (S-04 / US-002): interactive graph with search and filter,
 /// node details sidebar, model statistics and weight list.
 /// </summary>
@@ -52,6 +37,20 @@ public partial class ModelInspectorViewModel : ViewModelBase
     private readonly MainWindowViewModel _shell;
     private readonly IGraphAnalysisService _graphService;
     private readonly OnnxModel _model;
+    private readonly Dictionary<string, NodeItemViewModel> _nodeItems;
+    private readonly Dictionary<string, (int Inputs, int Outputs)> _dependencyCounts;
+    private readonly Lazy<IReadOnlyList<ModelComponent>> _components;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowGraph))]
+    private bool _showStructure;
+
+    [ObservableProperty]
+    private ModelComponent? _selectedComponent;
+
+    public bool ShowGraph => !ShowStructure;
+    public IReadOnlyList<ModelComponent> Components => _components.Value;
+    public string StructureSummary => $"Producer: {Model.ProducerName} · Opset: {Model.OpsetVersion} · {Statistics.NodeCount:N0} nodes";
 
     [ObservableProperty]
     private ObservableCollection<NodeItemViewModel> _nodes = new();
@@ -94,6 +93,22 @@ public partial class ModelInspectorViewModel : ViewModelBase
 
         Statistics = graphService.GetStatistics(model);
         Categories = graphService.GetCategories(model);
+        _nodeItems = model.Graph.Nodes.ToDictionary(n => n.Id, n => new NodeItemViewModel(
+            n, graphService.GetCategory(n.OpType), CategoryBrushes.For(graphService.GetCategory(n.OpType))));
+        // Build this once, instead of scanning the entire graph on every click.
+        var incoming = new Dictionary<string, HashSet<string>>();
+        var outgoing = new Dictionary<string, HashSet<string>>();
+        foreach (var edge in model.Graph.Edges)
+        {
+            if (!_nodeItems.ContainsKey(edge.FromNodeId) || !_nodeItems.ContainsKey(edge.ToNodeId)) continue;
+            if (!incoming.TryGetValue(edge.ToNodeId, out var sources)) incoming[edge.ToNodeId] = sources = new();
+            if (!outgoing.TryGetValue(edge.FromNodeId, out var targets)) outgoing[edge.FromNodeId] = targets = new();
+            sources.Add(edge.FromNodeId);
+            targets.Add(edge.ToNodeId);
+        }
+        _dependencyCounts = _nodeItems.Keys.ToDictionary(id => id,
+            id => (incoming.GetValueOrDefault(id)?.Count ?? 0, outgoing.GetValueOrDefault(id)?.Count ?? 0));
+        _components = new(() => ModelComponent.Build(model));
         RefreshNodes();
     }
 
@@ -104,28 +119,41 @@ public partial class ModelInspectorViewModel : ViewModelBase
     {
         var results = _graphService.Search(_model, SearchText, SelectedCategory);
         Nodes = new ObservableCollection<NodeItemViewModel>(
-            results.Select(n => new NodeItemViewModel(
-                n,
-                _graphService.GetCategory(n.OpType),
-                CategoryBrushes.For(_graphService.GetCategory(n.OpType)))));
+            results.Select(n => _nodeItems[n.Id]));
+    }
+
+    [RelayCommand]
+    private void ShowGraphView() => ShowStructure = false;
+
+    [RelayCommand]
+    private void ShowStructureView()
+    {
+        SelectedComponent ??= Components.FirstOrDefault();
+        ShowStructure = true;
+    }
+
+    partial void OnSelectedComponentChanged(ModelComponent? value)
+    {
+        if (value?.NodeId is { } id && _nodeItems.TryGetValue(id, out var node)) SelectNode(node);
     }
 
     [RelayCommand]
     private void SelectNode(NodeItemViewModel node)
     {
+        if (ReferenceEquals(SelectedNode, node)) return;
         SelectedNode = node;
         ShowNodeDetails = true;
 
         SelectedNodeAttributes = new ObservableCollection<AttributeEntry>(
-            node.Node.Attributes.Select(a => new AttributeEntry(a.Key, FormatValue(a.Value))));
+            node.Node.Attributes.Select(a => new AttributeEntry(a.Key, a.Value)));
 
         SelectedNodeInputs = new ObservableCollection<string>(node.Node.InputIds);
         SelectedNodeOutputs = new ObservableCollection<string>(node.Node.OutputIds);
 
-        var deps = _graphService.GetDependencies(_model, node.Node.Id);
+        var deps = _dependencyCounts[node.Node.Id];
         DependencySummary = string.Format(
             "depends on {0} node(s) - used by {1} node(s)",
-            deps.DependsOn.Count, deps.DependedBy.Count);
+            deps.Inputs, deps.Outputs);
     }
 
     [RelayCommand]
@@ -146,13 +174,6 @@ public partial class ModelInspectorViewModel : ViewModelBase
         _shell.ShowApiConfig(_model);
     }
 
-    private static string FormatValue(object value) => value switch
-    {
-        List<long> longs => "[" + string.Join(", ", longs) + "]",
-        List<float> floats => "[" + string.Join(", ", floats) + "]",
-        float f => f.ToString("0.###"),
-        _ => value.ToString() ?? string.Empty
-    };
 }
 
 /// <summary>

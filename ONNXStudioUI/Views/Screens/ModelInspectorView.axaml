@@ -9,6 +9,22 @@
              x:Class="ONNXStudioUI.Views.Screens.ModelInspectorView"
              x:DataType="vm:ModelInspectorViewModel">
 
+    <UserControl.Resources>
+        <DataTemplate x:Key="AttributeTemplate" x:DataType="vm:AttributeEntry">
+            <StackPanel Margin="0,4" Spacing="4">
+                <TextBlock Text="{Binding Key}" Classes="label" TextWrapping="Wrap"/>
+                <TextBlock Text="{Binding Value}" Classes="code" TextWrapping="Wrap"/>
+                <StackPanel IsVisible="{Binding HasMultiplePages}" Spacing="4">
+                    <TextBlock Text="{Binding PageSummary}" Classes="body-small"/>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Content="Previous" Command="{Binding PreviousPageCommand}" Classes="secondary"/>
+                        <Button Content="Next" Command="{Binding NextPageCommand}" Classes="secondary"/>
+                    </StackPanel>
+                </StackPanel>
+            </StackPanel>
+        </DataTemplate>
+    </UserControl.Resources>
+
     <UserControl.Styles>
         <Style Selector="Button.graph-node">
             <Setter Property="Background" Value="{DynamicResource SurfaceElevatedBrush}"/>
@@ -72,8 +88,18 @@
             </StackPanel>
         </Border>
 
+        <Border DockPanel.Dock="Top" Padding="16,8">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button Content="Graph" Command="{Binding ShowGraphViewCommand}"
+                        Classes="secondary" Classes.tab-active="{Binding ShowGraph}"/>
+                <Button Content="Structure &amp; Parameters" Command="{Binding ShowStructureViewCommand}"
+                        Classes="secondary" Classes.tab-active="{Binding ShowStructure}"/>
+            </StackPanel>
+        </Border>
+
+        <Grid>
         <!-- Main content -->
-        <Grid ColumnDefinitions="1*,320" Margin="12">
+        <Grid ColumnDefinitions="1*,320" Margin="12" IsVisible="{Binding ShowGraph}">
 
             <!-- Graph -->
             <Border Grid.Column="0"
@@ -97,8 +123,8 @@
                     </Border>
 
                     <DockPanel>
-                        <TextBlock DockPanel.Dock="Bottom" Text="Scroll to zoom ? Drag to pan ? Click a node to inspect" Margin="12" Classes="body-small"/>
-                        <controls:GraphViewer Nodes="{Binding Nodes}" Graph="{Binding Model.Graph}" SelectNodeCommand="{Binding SelectNodeCommand}" MinHeight="240"/>
+                        <TextBlock DockPanel.Dock="Bottom" Text="Scroll to zoom · Drag to pan · Click a node to inspect" Margin="12" Classes="body-small"/>
+                        <controls:GraphViewer Nodes="{Binding Nodes}" Graph="{Binding Model.Graph}" SelectedNode="{Binding SelectedNode}" SelectNodeCommand="{Binding SelectNodeCommand}" MinHeight="240"/>
                     </DockPanel>
                 </DockPanel>
             </Border>
@@ -127,16 +153,7 @@
                             <TextBlock Text="{Binding DependencySummary}" Classes="body-small"/>
 
                             <GroupBox Header="Attributes">
-                                <ItemsControl ItemsSource="{Binding SelectedNodeAttributes}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate x:DataType="vm:AttributeEntry">
-                                            <Grid ColumnDefinitions="150,1*" Margin="0,3">
-                                                <TextBlock Grid.Column="0" Text="{Binding Key}" Classes="label" VerticalAlignment="Center"/>
-                                                <TextBlock Grid.Column="1" Text="{Binding Value}" Classes="code" TextWrapping="Wrap" VerticalAlignment="Center"/>
-                                            </Grid>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
+                                <ItemsControl ItemsSource="{Binding SelectedNodeAttributes}" ItemTemplate="{StaticResource AttributeTemplate}"/>
                             </GroupBox>
 
                             <GroupBox Header="Inputs">
@@ -203,6 +220,43 @@
                     </StackPanel>
                 </ScrollViewer>
             </Border>
+        </Grid>
+        <!-- Structure explorer: the mock's tree and parameter panel, backed by the loaded model. -->
+        <Grid ColumnDefinitions="1*,360" Margin="12" IsVisible="{Binding ShowStructure}">
+            <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}"
+                    BorderThickness="1" CornerRadius="8" Padding="12">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Top" Spacing="6" Margin="0,0,0,12">
+                        <TextBlock Text="Model structure" Classes="h3"/>
+                        <TextBlock Text="{Binding StructureSummary}" Classes="body-small" TextWrapping="Wrap"/>
+                    </StackPanel>
+                    <TreeView x:Name="StructureTree" ItemsSource="{Binding Components}"
+                              SelectedItem="{Binding SelectedComponent, Mode=TwoWay}">
+                        <TreeView.ItemTemplate>
+                            <TreeDataTemplate x:DataType="vm:ModelComponent" ItemsSource="{Binding Children}">
+                                <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,2">
+                                    <TextBlock Text="{Binding Header}"/>
+                                    <Border CornerRadius="4" Padding="6,1" Background="{DynamicResource SurfaceElevatedBrush}">
+                                        <TextBlock Text="{Binding Kind}" Classes="body-small"/>
+                                    </Border>
+                                </StackPanel>
+                            </TreeDataTemplate>
+                        </TreeView.ItemTemplate>
+                    </TreeView>
+                </DockPanel>
+            </Border>
+            <Border Grid.Column="1" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}"
+                    BorderThickness="1" CornerRadius="8" Margin="8,0,0,0">
+                <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel Margin="16" Spacing="12">
+                        <TextBlock Text="Parameters" Classes="h3"/>
+                        <TextBlock Text="{Binding SelectedComponent.Header}" Classes="h4" TextWrapping="Wrap"/>
+                        <TextBlock Text="{Binding SelectedComponent.Description}" Classes="body-secondary" TextWrapping="Wrap"/>
+                        <ItemsControl ItemsSource="{Binding SelectedComponent.Parameters}" ItemTemplate="{StaticResource AttributeTemplate}"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Grid>
         </Grid>
     </DockPanel>
 </UserControl>

@@ -18,6 +18,9 @@ public sealed class GraphViewer : Control
         AvaloniaProperty.Register<GraphViewer, ComputationGraph?>(nameof(Graph));
     public static readonly StyledProperty<ICommand?> SelectNodeCommandProperty =
         AvaloniaProperty.Register<GraphViewer, ICommand?>(nameof(SelectNodeCommand));
+    public static readonly StyledProperty<NodeItemViewModel?> SelectedNodeProperty =
+        AvaloniaProperty.Register<GraphViewer, NodeItemViewModel?>(nameof(SelectedNode));
+    public NodeItemViewModel? SelectedNode { get => GetValue(SelectedNodeProperty); set => SetValue(SelectedNodeProperty, value); }
     public IReadOnlyList<NodeItemViewModel>? Nodes { get => GetValue(NodesProperty); set => SetValue(NodesProperty, value); }
     public ComputationGraph? Graph { get => GetValue(GraphProperty); set => SetValue(GraphProperty, value); }
     public ICommand? SelectNodeCommand { get => GetValue(SelectNodeCommandProperty); set => SetValue(SelectNodeCommandProperty, value); }
@@ -38,6 +41,13 @@ public sealed class GraphViewer : Control
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
+        if (change.Property == SelectedNodeProperty && _selected != SelectedNode?.Node.Id)
+        {
+            _selected = SelectedNode?.Node.Id;
+            if (_selected != null && _positions.TryGetValue(_selected, out var rect))
+                _offset = new Vector(24 - rect.X * _zoom, 24 - rect.Y * _zoom);
+            InvalidateVisual();
+        }
         if (change.Property == NodesProperty || change.Property == GraphProperty)
         {
             LayoutGraph();
