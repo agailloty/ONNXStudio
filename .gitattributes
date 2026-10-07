@@ -1,0 +1,3 @@
+# Packaging scripts must also work when checked out on Windows.
+*.sh text eol=lf
+*.yml text eol=lf

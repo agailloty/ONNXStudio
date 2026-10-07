@@ -1,0 +1,195 @@
+name: Build and release
+
+on:
+  push:
+    tags: ["**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  version:
+    name: Validate release version
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Determine version
+        id: version
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            version="${GITHUB_REF_NAME#v}"
+            if [[ ! "$version" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+              echo "::error::Release tags must use vMAJOR.MINOR.PATCH or MAJOR.MINOR.PATCH."
+              exit 1
+            fi
+            IFS=. read -r major minor patch <<< "$version"
+            for component in "$major" "$minor" "$patch"; do
+              if (( ${#component} > 5 )) || (( component > 65535 )); then
+                echo "::error::Version components must be at most 65535 (Windows installer limit)."
+                exit 1
+              fi
+            done
+          else
+            version="0.0.$GITHUB_RUN_NUMBER"
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build, test and package (${{ matrix.runtime }})
+    needs: version
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-2022
+            runtime: win-x64
+          - os: ubuntu-24.04
+            runtime: linux-x64
+          # Microsoft.ML.OnnxRuntime 1.30.0 has no osx-x64 native library.
+          - os: macos-15
+            runtime: osx-arm64
+    env:
+      APP_VERSION: ${{ needs.version.outputs.version }}
+      APP_RUNTIME: ${{ matrix.runtime }}
+    steps:
+      - name: Checkout tagged source
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+          dotnet-quality: ga
+      - name: Restore
+        run: dotnet restore ONNXStudio.slnx
+      - name: Build
+        run: dotnet build ONNXStudio.slnx --configuration Release --no-restore -p:UsedAvaloniaProducts=
+      - name: Test core and API
+        run: >-
+          dotnet test tests/ONNXStudio.Core.Tests/ONNXStudio.Core.Tests.csproj
+          --configuration Release --no-build --no-restore
+          --logger "trx;LogFileName=core.trx" --results-directory TestResults
+      - name: Test desktop UI
+        run: >-
+          dotnet test tests/ONNXStudio.UI.Tests/ONNXStudio.UI.Tests.csproj
+          --configuration Release --no-build --no-restore
+          --logger "trx;LogFileName=ui.trx" --results-directory TestResults
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results-${{ matrix.runtime }}
+          path: TestResults/*.trx
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Publish self-contained application
+        shell: bash
+        run: |
+          dotnet publish ONNXStudioUI/ONNXStudioUI.csproj \
+            --configuration Release --runtime "$APP_RUNTIME" --self-contained true \
+            --output "publish/$APP_RUNTIME" \
+            -p:Version="$APP_VERSION" -p:ContinuousIntegrationBuild=true \
+            -p:DebugSymbols=false -p:DebugType=None \
+            -p:PublishTrimmed=false -p:PublishSingleFile=false -p:UsedAvaloniaProducts=
+      - name: Verify packaged runtime dependencies
+        shell: bash
+        run: |
+          directory="publish/$APP_RUNTIME"
+          test -s "$directory/ONNXStudioUI.dll"
+          test -s "$directory/Microsoft.ML.OnnxRuntime.dll"
+          test -s "$directory/Microsoft.AspNetCore.Server.Kestrel.Core.dll"
+          case "$APP_RUNTIME" in
+            win-x64)
+              test -s "$directory/ONNXStudioUI.exe"
+              test -s "$directory/onnxruntime.dll"
+              test -s "$directory/coreclr.dll"
+              ;;
+            linux-x64)
+              test -x "$directory/ONNXStudioUI"
+              test -s "$directory/libonnxruntime.so"
+              test -s "$directory/libcoreclr.so"
+              ;;
+            osx-arm64)
+              test -x "$directory/ONNXStudioUI"
+              test -s "$directory/libonnxruntime.dylib"
+              test -s "$directory/libcoreclr.dylib"
+              ;;
+          esac
+      - name: Install NSIS
+        if: runner.os == 'Windows'
+        run: choco install nsis --no-progress -y
+      - name: Create Windows ZIP and installer
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force artifacts | Out-Null
+          Compress-Archive -Path publish/win-x64/* -DestinationPath "artifacts/ONNXStudio-$env:APP_VERSION-win-x64.zip"
+          $compiler = Join-Path ${env:ProgramFiles(x86)} 'NSIS/makensis.exe'
+          if (-not (Test-Path -LiteralPath $compiler)) { throw "NSIS compiler not found: $compiler" }
+          & $compiler "/DAPP_VERSION=$env:APP_VERSION" "/DPUBLISH_DIR=$((Resolve-Path 'publish/win-x64').Path)" "/DOUTPUT_FILE=$((Resolve-Path 'artifacts').Path)/ONNXStudio-$env:APP_VERSION-win-x64-Setup.exe" packaging/windows/ONNXStudio.nsi
+          if ($LASTEXITCODE -ne 0) { throw "NSIS packaging failed ($LASTEXITCODE)." }
+      - name: Create Linux TAR.GZ and DEB
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          bash packaging/linux/package.sh publish/linux-x64 artifacts "$APP_VERSION"
+          dpkg-deb --info "artifacts/ONNXStudio-$APP_VERSION-linux-x64.deb"
+      - name: Create macOS app, ZIP and DMG
+        if: runner.os == 'macOS'
+        shell: bash
+        run: bash packaging/macos/package.sh publish/osx-arm64 artifacts "$APP_VERSION"
+      - name: Upload release packages
+        uses: actions/upload-artifact@v7
+        with:
+          name: packages-${{ matrix.runtime }}
+          path: artifacts/ONNXStudio-*
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
+
+  release:
+    name: Publish GitHub Release
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    needs: [version, build]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Download release packages
+        uses: actions/download-artifact@v8
+        with:
+          pattern: packages-*
+          path: release-assets
+          merge-multiple: true
+      - name: Verify package set and generate checksums
+        working-directory: release-assets
+        env:
+          APP_VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          for suffix in win-x64.zip win-x64-Setup.exe linux-x64.tar.gz linux-x64.deb osx-arm64.zip osx-arm64.dmg; do
+            test -s "ONNXStudio-$APP_VERSION-$suffix"
+          done
+          sha256sum ONNXStudio-* > checksums-sha256.txt
+          sha256sum --check checksums-sha256.txt
+      - name: Create release and attach assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$RELEASE_TAG" release-assets/* \
+            --verify-tag --generate-notes --title "ONNX Studio $RELEASE_TAG"

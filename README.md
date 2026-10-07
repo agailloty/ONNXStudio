@@ -45,6 +45,14 @@ dotnet run --project ONNXStudioUI            # GUI, opens maximized
 dotnet run --project ONNXStudioUI -- --model path/to/model.onnx
 ```
 
+## Release builds
+
+Push a version tag (for example `v1.0.0`) to build, test and package the application
+for Windows x64, Linux x64 and macOS Apple Silicon. Successful builds create a
+GitHub Release with portable archives, installers and SHA-256 checksums.
+See [Build and release](packaging/README.md) for tag conventions, manual builds
+and platform details.
+
 ## Tests
 
 ```bash
@@ -72,10 +80,14 @@ curl -X POST http://localhost:5000/models/{id}/predict \
 
 ## Notes and V1 limitations
 
-- Settings are not persisted to disk yet (in-memory only).
-- Text (string tensor) inputs are not executable yet.
+- Theme and API port are persisted under LocalApplicationData/ONNXStudio/settings.json.
+- String tensors, exact integer inputs, dynamic shapes and rank-zero scalars are executable.
 - The predict payload uses the `{"inputs": {...}}` named-tensor format; custom
   JSON field renaming (mapping) is not supported server-side yet.
+- The API starts after model loading and stops when the last model is unloaded.
+  `/openapi.json` describes the currently loaded models; the sandbox can test all exposed endpoints.
+- See [UI architecture review](ONNXStudioUI/ARCHITECTURE_REVIEW.md) for verified paths,
+  test commands and remaining specification gaps.
 - AOT: compiled bindings and a reflection-free ViewLocator keep the UI on the
   AOT-friendly path (full NativeAOT publishing not yet validated).
 
