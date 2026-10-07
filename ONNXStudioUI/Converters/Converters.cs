@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Globalization;
 using Avalonia;
 using Avalonia.Data.Converters;
@@ -81,4 +81,14 @@ public class DoubleToPercentConverter : IValueConverter
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
         => value is double d ? d / 100.0 : 0.0;
+}
+
+/// <summary>Icon resource key (e.g. "IconGraph") => Geometry from the application resources.</summary>
+public class IconKeyConverter : IValueConverter
+{
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => value is string key && Application.Current is { } app && app.TryGetResource(key, app.ActualThemeVariant, out var icon) ? icon as Geometry : null;
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => throw new NotImplementedException();
 }

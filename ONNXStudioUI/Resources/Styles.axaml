@@ -8,6 +8,8 @@
     <Style Selector="Window">
         <Setter Property="Background" Value="{DynamicResource BackgroundBrush}"/>
         <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+        <Setter Property="FontFamily" Value="{DynamicResource PrimaryFontFamily}"/>
+        <Setter Property="FontSize" Value="13"/>
     </Style>
 
     <Style Selector="UserControl">
@@ -21,43 +23,37 @@
 
     <Style Selector="TextBlock">
         <Setter Property="FontFamily" Value="{DynamicResource PrimaryFontFamily}"/>
-        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="FontSize" Value="13"/>
         <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
     </Style>
 
     <Style Selector="ListBox">
         <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
         <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
-        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtleBrush}"/>
         <Setter Property="BorderThickness" Value="1"/>
-        <Setter Property="CornerRadius" Value="6"/>
-        <Setter Property="Padding" Value="4"/>
+        <Setter Property="CornerRadius" Value="3"/>
+        <Setter Property="Padding" Value="2"/>
     </Style>
 
     <Style Selector="ListBoxItem">
-        <Setter Property="Padding" Value="8"/>
-        <Setter Property="CornerRadius" Value="4"/>
+        <Setter Property="Padding" Value="8,4"/>
+        <Setter Property="CornerRadius" Value="2"/>
     </Style>
 
-    <Style Selector="ListBoxItem:pointerover">
-        <Setter Property="Background" Value="{DynamicResource SurfaceElevatedBrush}"/>
-    </Style>
-
-    <Style Selector="ListBoxItem:selected">
-        <Setter Property="Background" Value="{DynamicResource SelectionBrush}"/>
-    </Style>
-
+    <!-- Panels: flat bordered sections instead of rounded cards -->
     <Style Selector="GroupBox">
         <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
         <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
-        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtleBrush}"/>
         <Setter Property="BorderThickness" Value="1"/>
-        <Setter Property="CornerRadius" Value="8"/>
-        <Setter Property="Padding" Value="16"/>
-    </Style>
-
-    <Style Selector="Button:disabled">
-        <Setter Property="Opacity" Value="0.5"/>
+        <Setter Property="CornerRadius" Value="4"/>
+        <Setter Property="Padding" Value="12"/>
+        <Setter Property="HeaderTemplate">
+            <DataTemplate x:DataType="x:String">
+                <TextBlock Text="{Binding}" Classes="section"/>
+            </DataTemplate>
+        </Setter>
     </Style>
 
     <Style Selector="TextBox:disabled">
@@ -66,5 +62,26 @@
 
     <Style Selector="ComboBox:disabled">
         <Setter Property="Opacity" Value="0.5"/>
+    </Style>
+
+    <Style Selector="ToolTip">
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="Padding" Value="8,4"/>
+        <Setter Property="CornerRadius" Value="3"/>
+    </Style>
+
+    <!-- Editor toolbar strip shared by the screens -->
+    <Style Selector="Border.toolbar">
+        <Setter Property="Background" Value="{DynamicResource BackgroundBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtleBrush}"/>
+        <Setter Property="BorderThickness" Value="0,0,0,1"/>
+        <Setter Property="Padding" Value="12,6"/>
+    </Style>
+
+    <Style Selector="Border.panel">
+        <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtleBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="4"/>
     </Style>
 </Styles>

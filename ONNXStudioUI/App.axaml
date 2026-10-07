@@ -6,7 +6,12 @@
              RequestedThemeVariant="Dark">
 
     <Application.Styles>
-        <FluentTheme />
+        <FluentTheme>
+            <FluentTheme.Palettes>
+                <ColorPaletteResources x:Key="Dark" Accent="#0E639C" RegionColor="#1E1E1E" ErrorText="#F48771"/>
+                <ColorPaletteResources x:Key="Light" Accent="#007ACC" RegionColor="#FFFFFF" ErrorText="#C72E0F"/>
+            </FluentTheme.Palettes>
+        </FluentTheme>
         <StyleInclude Source="avares://ONNXStudioUI/Resources/Styles.axaml" />
     </Application.Styles>
 
@@ -28,6 +33,7 @@
             <cvt:CountToBoolConverter x:Key="CountToBoolConverter" />
             <cvt:StringToBrushConverter x:Key="StringToBrushConverter" />
             <cvt:DoubleToPercentConverter x:Key="DoubleToPercentConverter" />
+            <cvt:IconKeyConverter x:Key="IconKeyConverter" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

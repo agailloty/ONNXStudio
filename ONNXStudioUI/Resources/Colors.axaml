@@ -1,53 +1,50 @@
 <ResourceDictionary xmlns="https://github.com/avaloniaui"
                      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <!-- Palettes switchées automatiquement via Application.RequestedThemeVariant -->
+    <!-- VS Code inspired palettes (Dark+ / Light+), switched through RequestedThemeVariant -->
     <ResourceDictionary.ThemeDictionaries>
 
-        <!-- ================= LIGHT THEME ================= -->
         <ResourceDictionary x:Key="Light">
-            <!-- Background Colors -->
-            <Color x:Key="BackgroundColor">#F6F8FA</Color>
-            <Color x:Key="SurfaceColor">#FFFFFF</Color>
-            <Color x:Key="SurfaceElevatedColor">#EFF2F5</Color>
+            <!-- Core surfaces (editor / side bar / elevated) -->
+            <Color x:Key="BackgroundColor">#FFFFFF</Color>
+            <Color x:Key="SurfaceColor">#F3F3F3</Color>
+            <Color x:Key="SurfaceElevatedColor">#E8E8E8</Color>
 
-            <!-- Primary Colors -->
-            <Color x:Key="PrimaryColor">#0969DA</Color>
-            <Color x:Key="PrimaryHoverColor">#218BFF</Color>
-            <Color x:Key="PrimaryPressedColor">#0757B5</Color>
+            <!-- Accent -->
+            <Color x:Key="PrimaryColor">#0066BF</Color>
+            <Color x:Key="PrimaryHoverColor">#0078D4</Color>
+            <Color x:Key="PrimaryPressedColor">#005A9E</Color>
+            <Color x:Key="SecondaryColor">#616161</Color>
+            <Color x:Key="SecondaryHoverColor">#3B3B3B</Color>
 
-            <!-- Secondary Colors -->
-            <Color x:Key="SecondaryColor">#57606A</Color>
-            <Color x:Key="SecondaryHoverColor">#6E7781</Color>
+            <!-- Status -->
+            <Color x:Key="SuccessColor">#388A34</Color>
+            <Color x:Key="SuccessHoverColor">#2E7D32</Color>
+            <Color x:Key="WarningColor">#BF8803</Color>
+            <Color x:Key="ErrorColor">#C72E0F</Color>
+            <Color x:Key="ErrorHoverColor">#A1260D</Color>
 
-            <!-- Status Colors -->
-            <Color x:Key="SuccessColor">#1A7F37</Color>
-            <Color x:Key="SuccessHoverColor">#2DA44E</Color>
-            <Color x:Key="WarningColor">#9A6700</Color>
-            <Color x:Key="ErrorColor">#CF222E</Color>
-            <Color x:Key="ErrorHoverColor">#A40E26</Color>
+            <!-- Text -->
+            <Color x:Key="TextPrimaryColor">#3B3B3B</Color>
+            <Color x:Key="TextSecondaryColor">#616161</Color>
+            <Color x:Key="TextTertiaryColor">#8A8A8A</Color>
 
-            <!-- Text Colors -->
-            <Color x:Key="TextPrimaryColor">#1F2328</Color>
-            <Color x:Key="TextSecondaryColor">#57606A</Color>
-            <Color x:Key="TextTertiaryColor">#818B98</Color>
+            <!-- Borders -->
+            <Color x:Key="BorderColor">#D4D4D4</Color>
+            <Color x:Key="BorderSubtleColor">#E5E5E5</Color>
 
-            <!-- Border Colors -->
-            <Color x:Key="BorderColor">#D0D7DE</Color>
-            <Color x:Key="BorderSubtleColor">#EBEDF1</Color>
+            <!-- OpType colors for the graph -->
+            <Color x:Key="ConvColor">#0070C1</Color>
+            <Color x:Key="PoolColor">#388A34</Color>
+            <Color x:Key="ActivationColor">#795E26</Color>
+            <Color x:Key="LinearColor">#AF00DB</Color>
+            <Color x:Key="NormalizationColor">#267F99</Color>
+            <Color x:Key="OtherColor">#616161</Color>
 
-            <!-- OpType Colors for Graph -->
-            <Color x:Key="ConvColor">#0969DA</Color>
-            <Color x:Key="PoolColor">#1A7F37</Color>
-            <Color x:Key="ActivationColor">#9A6700</Color>
-            <Color x:Key="LinearColor">#8250DF</Color>
-            <Color x:Key="NormalizationColor">#1B7C83</Color>
-            <Color x:Key="OtherColor">#57606A</Color>
-
-            <!-- Node State Colors -->
-            <Color x:Key="NodeSelectedColor">#0969DA</Color>
-            <Color x:Key="NodeHoverColor">#218BFF</Color>
-            <Color x:Key="NodeDefaultColor">#AFB8C1</Color>
+            <!-- Node states -->
+            <Color x:Key="NodeSelectedColor">#0066BF</Color>
+            <Color x:Key="NodeHoverColor">#0078D4</Color>
+            <Color x:Key="NodeDefaultColor">#C8C8C8</Color>
 
             <!-- Brushes -->
             <SolidColorBrush x:Key="BackgroundBrush" Color="{DynamicResource BackgroundColor}"/>
@@ -64,64 +61,137 @@
             <SolidColorBrush x:Key="TextTertiaryBrush" Color="{DynamicResource TextTertiaryColor}"/>
             <SolidColorBrush x:Key="BorderBrush" Color="{DynamicResource BorderColor}"/>
             <SolidColorBrush x:Key="BorderSubtleBrush" Color="{DynamicResource BorderSubtleColor}"/>
-
-            <!-- Contrast -->
             <SolidColorBrush x:Key="OnPrimaryBrush" Color="#FFFFFF"/>
-            <SolidColorBrush x:Key="SelectionBrush" Color="#CFE4FF"/>
+            <SolidColorBrush x:Key="SelectionBrush" Color="#ADD6FF"/>
 
-            <!-- OpType brushes for graph -->
+            <!-- Studio chrome -->
+            <SolidColorBrush x:Key="ActivityBarBrush" Color="#2C2C2C"/>
+            <SolidColorBrush x:Key="ActivityBarForegroundBrush" Color="#FFFFFF"/>
+            <SolidColorBrush x:Key="ActivityBarInactiveBrush" Color="#A6A6A6"/>
+            <SolidColorBrush x:Key="SideBarBrush" Color="{DynamicResource SurfaceColor}"/>
+            <SolidColorBrush x:Key="TabBarBrush" Color="#F3F3F3"/>
+            <SolidColorBrush x:Key="TabInactiveBrush" Color="#ECECEC"/>
+            <SolidColorBrush x:Key="TabActiveBrush" Color="{DynamicResource BackgroundColor}"/>
+            <SolidColorBrush x:Key="StatusBarBrush" Color="#007ACC"/>
+            <SolidColorBrush x:Key="StatusBarForegroundBrush" Color="#FFFFFF"/>
+            <SolidColorBrush x:Key="InputBackgroundBrush" Color="#FFFFFF"/>
+            <SolidColorBrush x:Key="InputBorderBrush" Color="#CECECE"/>
+            <SolidColorBrush x:Key="FocusBorderBrush" Color="#007FD4"/>
+            <SolidColorBrush x:Key="ButtonBackgroundBrush" Color="#007ACC"/>
+            <SolidColorBrush x:Key="ButtonHoverBrush" Color="#0062A3"/>
+            <SolidColorBrush x:Key="ButtonSecondaryBrush" Color="#E4E4E4"/>
+            <SolidColorBrush x:Key="ButtonSecondaryHoverBrush" Color="#D6D6D6"/>
+            <SolidColorBrush x:Key="ListHoverBrush" Color="#E8E8E8"/>
+            <SolidColorBrush x:Key="ListActiveBrush" Color="#E4E6F1"/>
+
+            <!-- OpType brushes -->
             <SolidColorBrush x:Key="ConvBrush" Color="{DynamicResource ConvColor}"/>
             <SolidColorBrush x:Key="PoolBrush" Color="{DynamicResource PoolColor}"/>
             <SolidColorBrush x:Key="ActivationBrush" Color="{DynamicResource ActivationColor}"/>
             <SolidColorBrush x:Key="LinearBrush" Color="{DynamicResource LinearColor}"/>
             <SolidColorBrush x:Key="NormalizationBrush" Color="{DynamicResource NormalizationColor}"/>
             <SolidColorBrush x:Key="OtherBrush" Color="{DynamicResource OtherColor}"/>
+            <!-- Fluent control overrides (VS Code look) -->
+            <CornerRadius x:Key="ControlCornerRadius">2</CornerRadius>
+            <CornerRadius x:Key="OverlayCornerRadius">4</CornerRadius>
+            <Thickness x:Key="TextControlBorderThemeThicknessFocused">1</Thickness>
+            <SolidColorBrush x:Key="TextControlBackground" Color="#FFFFFF"/>
+            <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="#FFFFFF"/>
+            <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="#FFFFFF"/>
+            <SolidColorBrush x:Key="TextControlBorderBrush" Color="#CECECE"/>
+            <SolidColorBrush x:Key="TextControlBorderBrushPointerOver" Color="#CECECE"/>
+            <SolidColorBrush x:Key="TextControlBorderBrushFocused" Color="#007FD4"/>
+            <SolidColorBrush x:Key="TextControlForeground" Color="#3B3B3B"/>
+            <SolidColorBrush x:Key="TextControlForegroundPointerOver" Color="#3B3B3B"/>
+            <SolidColorBrush x:Key="TextControlForegroundFocused" Color="#3B3B3B"/>
+            <SolidColorBrush x:Key="TextControlPlaceholderForeground" Color="#8A8A8A"/>
+            <SolidColorBrush x:Key="TextControlPlaceholderForegroundPointerOver" Color="#8A8A8A"/>
+            <SolidColorBrush x:Key="TextControlPlaceholderForegroundFocused" Color="#8A8A8A"/>
+
+            <SolidColorBrush x:Key="ComboBoxBackground" Color="#FFFFFF"/>
+            <SolidColorBrush x:Key="ComboBoxBackgroundPointerOver" Color="#FFFFFF"/>
+            <SolidColorBrush x:Key="ComboBoxBackgroundPressed" Color="#FFFFFF"/>
+            <SolidColorBrush x:Key="ComboBoxBackgroundUnfocused" Color="#FFFFFF"/>
+            <SolidColorBrush x:Key="ComboBoxBorderBrush" Color="#CECECE"/>
+            <SolidColorBrush x:Key="ComboBoxBorderBrushPointerOver" Color="#CECECE"/>
+            <SolidColorBrush x:Key="ComboBoxBorderBrushPressed" Color="#007FD4"/>
+            <SolidColorBrush x:Key="ComboBoxBorderBrushFocused" Color="#007FD4"/>
+            <SolidColorBrush x:Key="ComboBoxForeground" Color="#3B3B3B"/>
+            <SolidColorBrush x:Key="ComboBoxForegroundPointerOver" Color="#3B3B3B"/>
+            <SolidColorBrush x:Key="ComboBoxForegroundPressed" Color="#3B3B3B"/>
+            <SolidColorBrush x:Key="ComboBoxDropDownBackground" Color="#F3F3F3"/>
+            <SolidColorBrush x:Key="ComboBoxDropDownBorderBrush" Color="#C8C8C8"/>
+            <SolidColorBrush x:Key="ComboBoxItemBackgroundPointerOver" Color="#E8E8E8"/>
+            <SolidColorBrush x:Key="ComboBoxItemBackgroundPressed" Color="#E4E6F1"/>
+            <SolidColorBrush x:Key="ComboBoxItemBackgroundSelected" Color="#E4E6F1"/>
+            <SolidColorBrush x:Key="ComboBoxItemBackgroundSelectedPointerOver" Color="#E4E6F1"/>
+            <SolidColorBrush x:Key="ComboBoxItemBackgroundSelectedPressed" Color="#E4E6F1"/>
+
+            <SolidColorBrush x:Key="ListBoxItemBackgroundPointerOver" Color="#E8E8E8"/>
+            <SolidColorBrush x:Key="ListBoxItemBackgroundPressed" Color="#E4E6F1"/>
+            <SolidColorBrush x:Key="ListBoxItemBackgroundSelected" Color="#E4E6F1"/>
+            <SolidColorBrush x:Key="ListBoxItemBackgroundSelectedPointerOver" Color="#E4E6F1"/>
+            <SolidColorBrush x:Key="ListBoxItemBackgroundSelectedPressed" Color="#E4E6F1"/>
+
+            <SolidColorBrush x:Key="TreeViewItemBackgroundPointerOver" Color="#E8E8E8"/>
+            <SolidColorBrush x:Key="TreeViewItemBackgroundPressed" Color="#E4E6F1"/>
+            <SolidColorBrush x:Key="TreeViewItemBackgroundSelected" Color="#E4E6F1"/>
+            <SolidColorBrush x:Key="TreeViewItemBackgroundSelectedPointerOver" Color="#E4E6F1"/>
+            <SolidColorBrush x:Key="TreeViewItemBackgroundSelectedPressed" Color="#E4E6F1"/>
+
+            <SolidColorBrush x:Key="MenuFlyoutPresenterBackground" Color="#F3F3F3"/>
+            <SolidColorBrush x:Key="MenuFlyoutPresenterBorderBrush" Color="#C8C8C8"/>
+            <SolidColorBrush x:Key="MenuFlyoutItemBackgroundPointerOver" Color="#0E639C"/>
+            <SolidColorBrush x:Key="MenuFlyoutItemForegroundPointerOver" Color="#FFFFFF"/>
+            <SolidColorBrush x:Key="MenuFlyoutItemBackgroundPressed" Color="#0E639C"/>
+            <SolidColorBrush x:Key="MenuFlyoutItemForegroundPressed" Color="#FFFFFF"/>
+
+            <SolidColorBrush x:Key="ToolTipBackground" Color="#F3F3F3"/>
+            <SolidColorBrush x:Key="ToolTipBorderBrush" Color="#C8C8C8"/>
+            <SolidColorBrush x:Key="ToolTipForeground" Color="#3B3B3B"/>
         </ResourceDictionary>
 
-        <!-- ================= DARK THEME ================= -->
         <ResourceDictionary x:Key="Dark">
-            <!-- Background Colors -->
-            <Color x:Key="BackgroundColor">#0E1117</Color>
-            <Color x:Key="SurfaceColor">#161B22</Color>
-            <Color x:Key="SurfaceElevatedColor">#21262D</Color>
+            <!-- Core surfaces (editor / side bar / elevated) -->
+            <Color x:Key="BackgroundColor">#1E1E1E</Color>
+            <Color x:Key="SurfaceColor">#252526</Color>
+            <Color x:Key="SurfaceElevatedColor">#2D2D30</Color>
 
-            <!-- Primary Colors -->
-            <Color x:Key="PrimaryColor">#58A6FF</Color>
-            <Color x:Key="PrimaryHoverColor">#79C0FF</Color>
-            <Color x:Key="PrimaryPressedColor">#3A8BD8</Color>
+            <!-- Accent -->
+            <Color x:Key="PrimaryColor">#3794FF</Color>
+            <Color x:Key="PrimaryHoverColor">#4FA3FF</Color>
+            <Color x:Key="PrimaryPressedColor">#1F7AE0</Color>
+            <Color x:Key="SecondaryColor">#9D9D9D</Color>
+            <Color x:Key="SecondaryHoverColor">#CCCCCC</Color>
 
-            <!-- Secondary Colors -->
-            <Color x:Key="SecondaryColor">#8B949E</Color>
-            <Color x:Key="SecondaryHoverColor">#A3ADBA</Color>
+            <!-- Status -->
+            <Color x:Key="SuccessColor">#89D185</Color>
+            <Color x:Key="SuccessHoverColor">#A5E3A1</Color>
+            <Color x:Key="WarningColor">#CCA700</Color>
+            <Color x:Key="ErrorColor">#F48771</Color>
+            <Color x:Key="ErrorHoverColor">#FF9E8C</Color>
 
-            <!-- Status Colors -->
-            <Color x:Key="SuccessColor">#3FB950</Color>
-            <Color x:Key="SuccessHoverColor">#56D364</Color>
-            <Color x:Key="WarningColor">#F8E454</Color>
-            <Color x:Key="ErrorColor">#F85149</Color>
-            <Color x:Key="ErrorHoverColor">#FF7B72</Color>
-
-            <!-- Text Colors -->
-            <Color x:Key="TextPrimaryColor">#F0F6FC</Color>
-            <Color x:Key="TextSecondaryColor">#8B949E</Color>
+            <!-- Text -->
+            <Color x:Key="TextPrimaryColor">#CCCCCC</Color>
+            <Color x:Key="TextSecondaryColor">#9D9D9D</Color>
             <Color x:Key="TextTertiaryColor">#6E7681</Color>
 
-            <!-- Border Colors -->
-            <Color x:Key="BorderColor">#30363D</Color>
-            <Color x:Key="BorderSubtleColor">#21262D</Color>
+            <!-- Borders -->
+            <Color x:Key="BorderColor">#3C3C3C</Color>
+            <Color x:Key="BorderSubtleColor">#2B2B2B</Color>
 
-            <!-- OpType Colors for Graph -->
-            <Color x:Key="ConvColor">#58A6FF</Color>
-            <Color x:Key="PoolColor">#3FB950</Color>
-            <Color x:Key="ActivationColor">#F8E454</Color>
-            <Color x:Key="LinearColor">#A371F7</Color>
-            <Color x:Key="NormalizationColor">#56D3D1</Color>
-            <Color x:Key="OtherColor">#8B949E</Color>
+            <!-- OpType colors for the graph -->
+            <Color x:Key="ConvColor">#4FC1FF</Color>
+            <Color x:Key="PoolColor">#89D185</Color>
+            <Color x:Key="ActivationColor">#DCDCAA</Color>
+            <Color x:Key="LinearColor">#C586C0</Color>
+            <Color x:Key="NormalizationColor">#4EC9B0</Color>
+            <Color x:Key="OtherColor">#9D9D9D</Color>
 
-            <!-- Node State Colors -->
-            <Color x:Key="NodeSelectedColor">#58A6FF</Color>
-            <Color x:Key="NodeHoverColor">#79C0FF</Color>
-            <Color x:Key="NodeDefaultColor">#484F58</Color>
+            <!-- Node states -->
+            <Color x:Key="NodeSelectedColor">#3794FF</Color>
+            <Color x:Key="NodeHoverColor">#4FA3FF</Color>
+            <Color x:Key="NodeDefaultColor">#555555</Color>
 
             <!-- Brushes -->
             <SolidColorBrush x:Key="BackgroundBrush" Color="{DynamicResource BackgroundColor}"/>
@@ -138,18 +208,94 @@
             <SolidColorBrush x:Key="TextTertiaryBrush" Color="{DynamicResource TextTertiaryColor}"/>
             <SolidColorBrush x:Key="BorderBrush" Color="{DynamicResource BorderColor}"/>
             <SolidColorBrush x:Key="BorderSubtleBrush" Color="{DynamicResource BorderSubtleColor}"/>
+            <SolidColorBrush x:Key="OnPrimaryBrush" Color="#FFFFFF"/>
+            <SolidColorBrush x:Key="SelectionBrush" Color="#264F78"/>
 
-            <!-- Contrast -->
-            <SolidColorBrush x:Key="OnPrimaryBrush" Color="#0E1117"/>
-            <SolidColorBrush x:Key="SelectionBrush" Color="#1A3A5C"/>
+            <!-- Studio chrome -->
+            <SolidColorBrush x:Key="ActivityBarBrush" Color="#333333"/>
+            <SolidColorBrush x:Key="ActivityBarForegroundBrush" Color="#FFFFFF"/>
+            <SolidColorBrush x:Key="ActivityBarInactiveBrush" Color="#858585"/>
+            <SolidColorBrush x:Key="SideBarBrush" Color="{DynamicResource SurfaceColor}"/>
+            <SolidColorBrush x:Key="TabBarBrush" Color="#252526"/>
+            <SolidColorBrush x:Key="TabInactiveBrush" Color="#2D2D2D"/>
+            <SolidColorBrush x:Key="TabActiveBrush" Color="{DynamicResource BackgroundColor}"/>
+            <SolidColorBrush x:Key="StatusBarBrush" Color="#007ACC"/>
+            <SolidColorBrush x:Key="StatusBarForegroundBrush" Color="#FFFFFF"/>
+            <SolidColorBrush x:Key="InputBackgroundBrush" Color="#3C3C3C"/>
+            <SolidColorBrush x:Key="InputBorderBrush" Color="#3C3C3C"/>
+            <SolidColorBrush x:Key="FocusBorderBrush" Color="#007FD4"/>
+            <SolidColorBrush x:Key="ButtonBackgroundBrush" Color="#0E639C"/>
+            <SolidColorBrush x:Key="ButtonHoverBrush" Color="#1177BB"/>
+            <SolidColorBrush x:Key="ButtonSecondaryBrush" Color="#3A3D41"/>
+            <SolidColorBrush x:Key="ButtonSecondaryHoverBrush" Color="#45494E"/>
+            <SolidColorBrush x:Key="ListHoverBrush" Color="#2A2D2E"/>
+            <SolidColorBrush x:Key="ListActiveBrush" Color="#37373D"/>
 
-            <!-- OpType brushes for graph -->
+            <!-- OpType brushes -->
             <SolidColorBrush x:Key="ConvBrush" Color="{DynamicResource ConvColor}"/>
             <SolidColorBrush x:Key="PoolBrush" Color="{DynamicResource PoolColor}"/>
             <SolidColorBrush x:Key="ActivationBrush" Color="{DynamicResource ActivationColor}"/>
             <SolidColorBrush x:Key="LinearBrush" Color="{DynamicResource LinearColor}"/>
             <SolidColorBrush x:Key="NormalizationBrush" Color="{DynamicResource NormalizationColor}"/>
             <SolidColorBrush x:Key="OtherBrush" Color="{DynamicResource OtherColor}"/>
+            <!-- Fluent control overrides (VS Code look) -->
+            <CornerRadius x:Key="ControlCornerRadius">2</CornerRadius>
+            <CornerRadius x:Key="OverlayCornerRadius">4</CornerRadius>
+            <Thickness x:Key="TextControlBorderThemeThicknessFocused">1</Thickness>
+            <SolidColorBrush x:Key="TextControlBackground" Color="#3C3C3C"/>
+            <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="#3C3C3C"/>
+            <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="#3C3C3C"/>
+            <SolidColorBrush x:Key="TextControlBorderBrush" Color="#3C3C3C"/>
+            <SolidColorBrush x:Key="TextControlBorderBrushPointerOver" Color="#3C3C3C"/>
+            <SolidColorBrush x:Key="TextControlBorderBrushFocused" Color="#007FD4"/>
+            <SolidColorBrush x:Key="TextControlForeground" Color="#CCCCCC"/>
+            <SolidColorBrush x:Key="TextControlForegroundPointerOver" Color="#CCCCCC"/>
+            <SolidColorBrush x:Key="TextControlForegroundFocused" Color="#CCCCCC"/>
+            <SolidColorBrush x:Key="TextControlPlaceholderForeground" Color="#6E7681"/>
+            <SolidColorBrush x:Key="TextControlPlaceholderForegroundPointerOver" Color="#6E7681"/>
+            <SolidColorBrush x:Key="TextControlPlaceholderForegroundFocused" Color="#6E7681"/>
+
+            <SolidColorBrush x:Key="ComboBoxBackground" Color="#3C3C3C"/>
+            <SolidColorBrush x:Key="ComboBoxBackgroundPointerOver" Color="#3C3C3C"/>
+            <SolidColorBrush x:Key="ComboBoxBackgroundPressed" Color="#3C3C3C"/>
+            <SolidColorBrush x:Key="ComboBoxBackgroundUnfocused" Color="#3C3C3C"/>
+            <SolidColorBrush x:Key="ComboBoxBorderBrush" Color="#3C3C3C"/>
+            <SolidColorBrush x:Key="ComboBoxBorderBrushPointerOver" Color="#3C3C3C"/>
+            <SolidColorBrush x:Key="ComboBoxBorderBrushPressed" Color="#007FD4"/>
+            <SolidColorBrush x:Key="ComboBoxBorderBrushFocused" Color="#007FD4"/>
+            <SolidColorBrush x:Key="ComboBoxForeground" Color="#CCCCCC"/>
+            <SolidColorBrush x:Key="ComboBoxForegroundPointerOver" Color="#CCCCCC"/>
+            <SolidColorBrush x:Key="ComboBoxForegroundPressed" Color="#CCCCCC"/>
+            <SolidColorBrush x:Key="ComboBoxDropDownBackground" Color="#252526"/>
+            <SolidColorBrush x:Key="ComboBoxDropDownBorderBrush" Color="#454545"/>
+            <SolidColorBrush x:Key="ComboBoxItemBackgroundPointerOver" Color="#2A2D2E"/>
+            <SolidColorBrush x:Key="ComboBoxItemBackgroundPressed" Color="#37373D"/>
+            <SolidColorBrush x:Key="ComboBoxItemBackgroundSelected" Color="#37373D"/>
+            <SolidColorBrush x:Key="ComboBoxItemBackgroundSelectedPointerOver" Color="#37373D"/>
+            <SolidColorBrush x:Key="ComboBoxItemBackgroundSelectedPressed" Color="#37373D"/>
+
+            <SolidColorBrush x:Key="ListBoxItemBackgroundPointerOver" Color="#2A2D2E"/>
+            <SolidColorBrush x:Key="ListBoxItemBackgroundPressed" Color="#37373D"/>
+            <SolidColorBrush x:Key="ListBoxItemBackgroundSelected" Color="#37373D"/>
+            <SolidColorBrush x:Key="ListBoxItemBackgroundSelectedPointerOver" Color="#37373D"/>
+            <SolidColorBrush x:Key="ListBoxItemBackgroundSelectedPressed" Color="#37373D"/>
+
+            <SolidColorBrush x:Key="TreeViewItemBackgroundPointerOver" Color="#2A2D2E"/>
+            <SolidColorBrush x:Key="TreeViewItemBackgroundPressed" Color="#37373D"/>
+            <SolidColorBrush x:Key="TreeViewItemBackgroundSelected" Color="#37373D"/>
+            <SolidColorBrush x:Key="TreeViewItemBackgroundSelectedPointerOver" Color="#37373D"/>
+            <SolidColorBrush x:Key="TreeViewItemBackgroundSelectedPressed" Color="#37373D"/>
+
+            <SolidColorBrush x:Key="MenuFlyoutPresenterBackground" Color="#252526"/>
+            <SolidColorBrush x:Key="MenuFlyoutPresenterBorderBrush" Color="#454545"/>
+            <SolidColorBrush x:Key="MenuFlyoutItemBackgroundPointerOver" Color="#0E639C"/>
+            <SolidColorBrush x:Key="MenuFlyoutItemForegroundPointerOver" Color="#FFFFFF"/>
+            <SolidColorBrush x:Key="MenuFlyoutItemBackgroundPressed" Color="#0E639C"/>
+            <SolidColorBrush x:Key="MenuFlyoutItemForegroundPressed" Color="#FFFFFF"/>
+
+            <SolidColorBrush x:Key="ToolTipBackground" Color="#252526"/>
+            <SolidColorBrush x:Key="ToolTipBorderBrush" Color="#454545"/>
+            <SolidColorBrush x:Key="ToolTipForeground" Color="#CCCCCC"/>
         </ResourceDictionary>
 
     </ResourceDictionary.ThemeDictionaries>

@@ -2,111 +2,177 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:controls="using:ONNXStudioUI.Controls">
 
-    <!-- Base Button -->
+    <!-- ===================== Buttons ===================== -->
+    <!-- Base: quiet outlined button -->
     <Style Selector="Button">
         <Setter Property="FontFamily" Value="{DynamicResource PrimaryFontFamily}"/>
-        <Setter Property="FontSize" Value="14"/>
-        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="FontWeight" Value="Normal"/>
         <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
         <Setter Property="BorderThickness" Value="1"/>
-        <Setter Property="CornerRadius" Value="6"/>
-        <Setter Property="Padding" Value="16,8"/>
-        <Setter Property="Margin" Value="4"/>
-        <Setter Property="MinWidth" Value="60"/>
-        <Setter Property="MinHeight" Value="32"/>
+        <Setter Property="CornerRadius" Value="2"/>
+        <Setter Property="Padding" Value="12,4"/>
+        <Setter Property="Margin" Value="2"/>
+        <Setter Property="MinWidth" Value="0"/>
+        <Setter Property="MinHeight" Value="26"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource ListHoverBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+    </Style>
+    <Style Selector="Button:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource ListActiveBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+    </Style>
+    <Style Selector="Button:disabled">
+        <Setter Property="Opacity" Value="0.5"/>
     </Style>
 
+    <!-- Primary: filled accent -->
     <Style Selector="Button.primary">
-        <Setter Property="Background" Value="{DynamicResource PrimaryBrush}"/>
-        <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}"/>
+        <Setter Property="Background" Value="{DynamicResource ButtonBackgroundBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource ButtonBackgroundBrush}"/>
         <Setter Property="Foreground" Value="{DynamicResource OnPrimaryBrush}"/>
     </Style>
-
-    <Style Selector="Button.primary:pointerover">
-        <Setter Property="Background" Value="{DynamicResource PrimaryHoverBrush}"/>
-        <Setter Property="BorderBrush" Value="{DynamicResource PrimaryHoverBrush}"/>
+    <Style Selector="Button.primary:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.primary:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource ButtonHoverBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource ButtonHoverBrush}"/>
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource OnPrimaryBrush}"/>
+    </Style>
+    <Style Selector="Button.primary:disabled /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource ButtonBackgroundBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource ButtonBackgroundBrush}"/>
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource OnPrimaryBrush}"/>
     </Style>
 
+    <!-- Secondary: filled neutral -->
     <Style Selector="Button.secondary">
+        <Setter Property="Background" Value="{DynamicResource ButtonSecondaryBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource ButtonSecondaryBrush}"/>
+    </Style>
+    <Style Selector="Button.secondary:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.secondary:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource ButtonSecondaryHoverBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource ButtonSecondaryHoverBrush}"/>
+    </Style>
+    <Style Selector="Button.secondary:disabled /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource ButtonSecondaryBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource ButtonSecondaryBrush}"/>
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+    </Style>
+
+    <!-- Danger -->
+    <Style Selector="Button.danger">
         <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="BorderBrush" Value="{DynamicResource SecondaryBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource ErrorBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource ErrorBrush}"/>
+    </Style>
+    <Style Selector="Button.danger:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.danger:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource ErrorBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource ErrorBrush}"/>
+        <Setter Property="TextElement.Foreground" Value="#FFFFFF"/>
     </Style>
 
-    <Style Selector="Button.secondary:pointerover">
-        <Setter Property="Background" Value="{DynamicResource SurfaceElevatedBrush}"/>
-    </Style>
-
+    <!-- Icon / ghost button -->
     <Style Selector="Button.icon">
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="BorderThickness" Value="0"/>
-        <Setter Property="Padding" Value="8"/>
-        <Setter Property="MinWidth" Value="32"/>
-    </Style>
-
-    <Style Selector="Button.icon:pointerover">
-        <Setter Property="Background" Value="{DynamicResource SurfaceElevatedBrush}"/>
-    </Style>
-
-    <Style Selector="Button.large">
-        <Setter Property="Padding" Value="24,12"/>
-        <Setter Property="FontSize" Value="16"/>
-        <Setter Property="MinHeight" Value="40"/>
-    </Style>
-
-    <Style Selector="Button.small">
-        <Setter Property="Padding" Value="8,4"/>
-        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+        <Setter Property="Padding" Value="4"/>
+        <Setter Property="MinWidth" Value="24"/>
         <Setter Property="MinHeight" Value="24"/>
-        <Setter Property="MinWidth" Value="40"/>
+        <Setter Property="CornerRadius" Value="3"/>
+    </Style>
+    <Style Selector="Button.icon:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.icon:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource ListActiveBrush}"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
     </Style>
 
-    <Style Selector="Button.danger">
-        <Setter Property="Background" Value="{DynamicResource ErrorBrush}"/>
-        <Setter Property="BorderBrush" Value="{DynamicResource ErrorBrush}"/>
-        <Setter Property="Foreground" Value="{DynamicResource OnPrimaryBrush}"/>
+    <!-- Link-like action -->
+    <Style Selector="Button.link">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}"/>
+        <Setter Property="Padding" Value="0,2"/>
+        <Setter Property="HorizontalContentAlignment" Value="Left"/>
+    </Style>
+    <Style Selector="Button.link:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.link:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource PrimaryHoverBrush}"/>
     </Style>
 
+    <!-- Sizes -->
+    <Style Selector="Button.large">
+        <Setter Property="Padding" Value="20,8"/>
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="MinHeight" Value="34"/>
+    </Style>
+    <Style Selector="Button.small">
+        <Setter Property="Padding" Value="8,2"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="MinHeight" Value="22"/>
+        <Setter Property="MinWidth" Value="0"/>
+    </Style>
+
+    <!-- Editor tabs / view switchers (underline on active) -->
+    <Style Selector="Button.tab, Button.tab-active">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0,0,0,2"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="CornerRadius" Value="0"/>
+        <Setter Property="Padding" Value="12,4"/>
+        <Setter Property="Margin" Value="0"/>
+        <Setter Property="MinHeight" Value="30"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+    </Style>
+    <Style Selector="Button.tab:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.tab:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+    </Style>
     <Style Selector="Button.tab-active">
-        <Setter Property="Background" Value="{DynamicResource PrimaryBrush}"/>
         <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}"/>
-        <Setter Property="Foreground" Value="{DynamicResource OnPrimaryBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+    </Style>
+    <Style Selector="Button.tab-active:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.tab-active:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}"/>
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
     </Style>
 
+    <!-- ===================== Inputs ===================== -->
     <Style Selector="TextBox">
         <Setter Property="FontFamily" Value="{DynamicResource PrimaryFontFamily}"/>
-        <Setter Property="FontSize" Value="14"/>
-        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
-        <Setter Property="Background" Value="{DynamicResource SurfaceElevatedBrush}"/>
-        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
-        <Setter Property="BorderThickness" Value="1"/>
-        <Setter Property="CornerRadius" Value="6"/>
-        <Setter Property="Padding" Value="8,6"/>
-        <Setter Property="Margin" Value="4"/>
-        <Setter Property="MinHeight" Value="32"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="CornerRadius" Value="2"/>
+        <Setter Property="Padding" Value="8,4"/>
+        <Setter Property="Margin" Value="2"/>
+        <Setter Property="MinHeight" Value="26"/>
     </Style>
 
     <Style Selector="ComboBox">
         <Setter Property="FontFamily" Value="{DynamicResource PrimaryFontFamily}"/>
-        <Setter Property="FontSize" Value="14"/>
-        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
-        <Setter Property="Background" Value="{DynamicResource SurfaceElevatedBrush}"/>
-        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
-        <Setter Property="BorderThickness" Value="1"/>
-        <Setter Property="CornerRadius" Value="6"/>
-        <Setter Property="Padding" Value="8,6"/>
-        <Setter Property="Margin" Value="4"/>
-        <Setter Property="MinHeight" Value="32"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="CornerRadius" Value="2"/>
+        <Setter Property="Padding" Value="8,3"/>
+        <Setter Property="Margin" Value="2"/>
+        <Setter Property="MinHeight" Value="26"/>
     </Style>
 
-    <!-- Card -->
+    <!-- ===================== Card (flat panel) ===================== -->
     <Style Selector="controls|Card">
         <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
-        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtleBrush}"/>
         <Setter Property="BorderThickness" Value="1"/>
-        <Setter Property="CornerRadius" Value="8"/>
-        <Setter Property="Padding" Value="16"/>
+        <Setter Property="CornerRadius" Value="4"/>
+        <Setter Property="Padding" Value="14"/>
         <Setter Property="Template">
             <ControlTemplate>
                 <Border Background="{TemplateBinding Background}"
@@ -125,57 +191,126 @@
     </Style>
 
     <Style Selector="controls|Card:pointerover">
+        <Setter Property="Background" Value="{DynamicResource ListHoverBrush}"/>
         <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}"/>
     </Style>
 
     <Style Selector="controls|Card.selected">
         <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}"/>
-        <Setter Property="BorderThickness" Value="2"/>
     </Style>
 
-    <!-- ProgressBar -->
+    <!-- ===================== Progress / spinner ===================== -->
     <Style Selector="ProgressBar">
-        <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource ButtonBackgroundBrush}"/>
         <Setter Property="Background" Value="{DynamicResource SurfaceElevatedBrush}"/>
-        <Setter Property="Height" Value="8"/>
-        <Setter Property="CornerRadius" Value="4"/>
+        <Setter Property="Height" Value="4"/>
+        <Setter Property="MinHeight" Value="4"/>
+        <Setter Property="CornerRadius" Value="0"/>
         <Setter Property="MinWidth" Value="10"/>
     </Style>
 
-    <!-- Spinner -->
     <Style Selector="controls|Spinner">
         <Setter Property="Template">
             <ControlTemplate>
                 <ProgressBar IsIndeterminate="True"
-                            Width="32"
-                            Height="4"
-                            Foreground="{DynamicResource PrimaryBrush}"
-                            Background="Transparent"/>
+                             Width="64"
+                             Foreground="{DynamicResource PrimaryBrush}"
+                             Background="Transparent"/>
             </ControlTemplate>
         </Setter>
     </Style>
 
-    <!-- StatusBar -->
+    <!-- ===================== Status bar ===================== -->
     <Style Selector="controls|StatusBar">
-        <Setter Property="Background" Value="{DynamicResource SurfaceElevatedBrush}"/>
-        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
-        <Setter Property="Padding" Value="16,6"/>
+        <Setter Property="Background" Value="{DynamicResource StatusBarBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource StatusBarForegroundBrush}"/>
+        <Setter Property="Padding" Value="10,0"/>
         <Setter Property="FontSize" Value="12"/>
+        <Setter Property="Height" Value="22"/>
         <Setter Property="Template">
             <ControlTemplate>
                 <Border Background="{TemplateBinding Background}"
                         Padding="{TemplateBinding Padding}">
-                    <DockPanel>
+                    <DockPanel LastChildFill="True">
                         <TextBlock DockPanel.Dock="Right"
                                    Text="{TemplateBinding Info}"
-                                   Foreground="{DynamicResource TextTertiaryBrush}"
+                                   Foreground="{TemplateBinding Foreground}"
+                                   VerticalAlignment="Center"
+                                   FontSize="{TemplateBinding FontSize}"/>
+                        <TextBlock DockPanel.Dock="Right"
+                                   Text="{TemplateBinding Extra}"
+                                   Foreground="{TemplateBinding Foreground}"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,16,0"
                                    FontSize="{TemplateBinding FontSize}"/>
                         <TextBlock Text="{TemplateBinding Status}"
                                    Foreground="{TemplateBinding Foreground}"
+                                   VerticalAlignment="Center"
+                                   TextTrimming="CharacterEllipsis"
                                    FontSize="{TemplateBinding FontSize}"/>
                     </DockPanel>
                 </Border>
             </ControlTemplate>
         </Setter>
+    </Style>
+
+    <!-- ===================== Studio chrome ===================== -->
+    <!-- Activity bar button -->
+    <Style Selector="Button.activity">
+        <Setter Property="Width" Value="48"/>
+        <Setter Property="Height" Value="48"/>
+        <Setter Property="Margin" Value="0"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="MinHeight" Value="0"/>
+        <Setter Property="CornerRadius" Value="0"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Foreground" Value="{DynamicResource ActivityBarInactiveBrush}"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="2,0,0,0"/>
+        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+    </Style>
+    <Style Selector="Button.activity:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.activity:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource ActivityBarForegroundBrush}"/>
+    </Style>
+    <Style Selector="Button.activity.active">
+        <Setter Property="Foreground" Value="{DynamicResource ActivityBarForegroundBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource ActivityBarForegroundBrush}"/>
+    </Style>
+    <Style Selector="Button.activity.active:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.activity.active:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="BorderBrush" Value="{DynamicResource ActivityBarForegroundBrush}"/>
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource ActivityBarForegroundBrush}"/>
+    </Style>
+
+    <!-- Editor tab (shell tab strip) -->
+    <Style Selector="Button.editor-tab">
+        <Setter Property="Background" Value="{DynamicResource TabInactiveBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0,2,0,0"/>
+        <Setter Property="CornerRadius" Value="0"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="Margin" Value="0"/>
+        <Setter Property="MinHeight" Value="35"/>
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+    </Style>
+    <Style Selector="Button.editor-tab:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.editor-tab:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource TabActiveBrush}"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+    </Style>
+    <Style Selector="Button.editor-tab.active">
+        <Setter Property="Background" Value="{DynamicResource TabActiveBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}"/>
+    </Style>
+    <Style Selector="Button.editor-tab.active:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.editor-tab.active:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}"/>
+    </Style>
+    <!-- Explorer rows -->
+    <Style Selector="TreeViewItem">
+        <Setter Property="MinHeight" Value="22"/>
+        <Setter Property="Padding" Value="0"/>
     </Style>
 </Styles>

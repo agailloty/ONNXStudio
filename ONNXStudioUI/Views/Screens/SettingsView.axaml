@@ -9,20 +9,12 @@
 
     <DockPanel>
         <!-- Toolbar -->
-        <Border DockPanel.Dock="Top"
-                Background="{DynamicResource SurfaceBrush}"
-                BorderBrush="{DynamicResource BorderBrush}"
-                BorderThickness="0,0,0,1"
-                Padding="16,12">
+        <Border DockPanel.Dock="Top" Classes="toolbar" Padding="12,2">
             <Grid ColumnDefinitions="Auto,Auto,1*,Auto">
-                <Button Grid.Column="0" Classes="secondary" Command="{Binding BackCommand}">
-                    <StackPanel Orientation="Horizontal" Spacing="6">
-                        <PathIcon Data="{StaticResource IconChevronLeft}" Width="14" Height="14"/>
-                        <TextBlock Text="Back"/>
-                    </StackPanel>
-                </Button>
-                <TextBlock Grid.Column="1" Text="Settings" Classes="h2"
-                           VerticalAlignment="Center" Margin="16,0,0,0"/>
+                <StackPanel Grid.Column="0" Grid.ColumnSpan="3" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <PathIcon Data="{StaticResource IconSettings}" Width="14" Height="14" Foreground="{DynamicResource PrimaryBrush}"/>
+                    <TextBlock Text="Settings" Classes="h4"/>
+                </StackPanel>
                 <Button Grid.Column="3" Classes="primary" Command="{Binding SaveCommand}">
                     <TextBlock Text="Save"/>
                 </Button>

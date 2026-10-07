@@ -11,29 +11,21 @@
 
     <DockPanel>
         <!-- Toolbar -->
-        <Border DockPanel.Dock="Top"
-                Background="{DynamicResource SurfaceBrush}"
-                BorderBrush="{DynamicResource BorderBrush}"
-                BorderThickness="0,0,0,1"
-                Padding="16,12">
+        <Border DockPanel.Dock="Top" Classes="toolbar" Padding="12,4">
             <Grid ColumnDefinitions="1*,Auto">
-                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12">
-                    <TextBlock Text="ONNX Studio" Classes="h1" VerticalAlignment="Center"/>
-                    <TextBlock Text="Dashboard" Classes="body-secondary" VerticalAlignment="Center"/>
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <PathIcon Data="{StaticResource IconDashboard}" Width="14" Height="14"
+                              Foreground="{DynamicResource PrimaryBrush}"/>
+                    <TextBlock Text="Dashboard" Classes="h4"/>
+                    <TextBlock Text="&#x203A;" Classes="body-small"/>
+                    <TextBlock Text="Loaded models" Classes="body-small"/>
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal">
-                    <Button Classes="secondary"
-                            Command="{Binding ShowSettingsCommand}">
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                            <PathIcon Data="{StaticResource IconSettings}" Width="14" Height="14"/>
-                            <TextBlock Text="Settings"/>
-                        </StackPanel>
-                    </Button>
                     <Button Classes="primary"
                             Command="{Binding OpenModelsCommand}">
                         <StackPanel Orientation="Horizontal" Spacing="6">
-                            <PathIcon Data="{StaticResource IconPlus}" Width="14" Height="14"/>
-                            <TextBlock Text="Open models"/>
+                            <PathIcon Data="{StaticResource IconPlus}" Width="12" Height="12"/>
+                            <TextBlock Text="Open models" Foreground="{DynamicResource OnPrimaryBrush}"/>
                         </StackPanel>
                     </Button>
                 </StackPanel>
@@ -41,16 +33,16 @@
         </Border>
 
         <!-- Search + sort -->
-        <Border DockPanel.Dock="Top" Padding="16,8">
+        <Border DockPanel.Dock="Top" Padding="20,12,20,4">
             <StackPanel Orientation="Horizontal" Spacing="8">
                 <PathIcon Data="{StaticResource IconSearch}"
-                          Width="16" Height="16"
+                          Width="14" Height="14"
                           Foreground="{DynamicResource TextSecondaryBrush}"
                           VerticalAlignment="Center"/>
                 <TextBox PlaceholderText="Search models..."
                          Text="{Binding SearchText, Mode=TwoWay}"
                          MinWidth="320"/>
-                <TextBlock Text="Sort by:" Classes="body-secondary" VerticalAlignment="Center" Margin="12,0,0,0"/>
+                <TextBlock Text="Sort by" Classes="body-secondary" VerticalAlignment="Center" Margin="12,0,0,0"/>
                 <ComboBox ItemsSource="{Binding SortOptions}"
                           SelectedItem="{Binding SelectedSort, Mode=TwoWay}"
                           MinWidth="160"/>
@@ -59,7 +51,7 @@
 
         <!-- Models -->
         <ScrollViewer>
-            <ItemsControl ItemsSource="{Binding FilteredModels}" Margin="16">
+            <ItemsControl ItemsSource="{Binding FilteredModels}" Margin="14,8,14,14">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
                         <WrapPanel/>
@@ -67,43 +59,63 @@
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="models:OnnxModel">
-                        <controls:Card Width="240" Margin="8">
-                            <StackPanel Spacing="8">
-                                <Border Background="{DynamicResource SurfaceElevatedBrush}"
-                                        BorderBrush="{DynamicResource BorderBrush}"
-                                        BorderThickness="1"
-                                        CornerRadius="6"
-                                        Height="56" Width="56"
-                                        HorizontalAlignment="Center">
-                                    <TextBlock Text="{Binding OpsetVersion, StringFormat='op {0}'}"
-                                               FontFamily="{DynamicResource CodeFontFamily}"
-                                               FontSize="12"
-                                               Foreground="{DynamicResource PrimaryBrush}"
-                                               HorizontalAlignment="Center"
-                                               VerticalAlignment="Center"/>
-                                </Border>
+                        <controls:Card Width="300" Margin="6">
+                            <StackPanel Spacing="12">
+                                <Grid ColumnDefinitions="Auto,1*,Auto">
+                                    <Border Grid.Column="0"
+                                            Background="{DynamicResource SelectionBrush}"
+                                            CornerRadius="4"
+                                            Height="36" Width="36">
+                                        <PathIcon Data="{StaticResource IconBox}"
+                                                  Width="18" Height="18"
+                                                  Foreground="{DynamicResource TextPrimaryBrush}"/>
+                                    </Border>
+                                    <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center" Spacing="2">
+                                        <TextBlock Text="{Binding Name}"
+                                                   Classes="h4"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Text="{Binding ProducerName}"
+                                                   Classes="caption"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                    </StackPanel>
+                                    <Button Grid.Column="2"
+                                            Classes="icon"
+                                            VerticalAlignment="Top"
+                                            Command="{Binding $parent[ItemsControl].((vm:DashboardViewModel)DataContext).UnloadModelCommand}"
+                                            CommandParameter="{Binding}"
+                                            ToolTip.Tip="Unload model">
+                                        <PathIcon Data="{StaticResource IconTrash}" Width="14" Height="14"/>
+                                    </Button>
+                                </Grid>
 
-                                <TextBlock Text="{Binding Name}"
-                                           Classes="h3"
-                                           TextTrimming="CharacterEllipsis"
-                                           HorizontalAlignment="Center"/>
+                                <!-- Facts -->
+                                <WrapPanel>
+                                    <Border Classes="panel" Padding="6,2" Margin="0,0,6,6">
+                                        <TextBlock Text="{Binding OpsetVersion, StringFormat='opset {0}'}" Classes="code"/>
+                                    </Border>
+                                    <Border Classes="panel" Padding="6,2" Margin="0,0,6,6">
+                                        <TextBlock Text="{Binding FileSizeDisplay}" Classes="code"/>
+                                    </Border>
+                                    <Border Classes="panel" Padding="6,2" Margin="0,0,6,6">
+                                        <TextBlock Text="{Binding Graph.Nodes.Count, StringFormat='{}{0} nodes'}" Classes="code"/>
+                                    </Border>
+                                </WrapPanel>
 
-                                <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
-                                    <TextBlock Text="{Binding ProducerName}" Classes="body-small"/>
-                                    <TextBlock Text="&#x00B7;" Classes="body-small"/>
-                                    <TextBlock Text="{Binding FileSizeDisplay}" Classes="body-small"/>
-                                    <TextBlock Text="&#x00B7;" Classes="body-small"/>
-                                    <TextBlock Text="{Binding Graph.Nodes.Count, StringFormat='{}{0} nodes'}" Classes="body-small"/>
-                                </StackPanel>
-
-                                <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Center">
+                                <StackPanel Orientation="Horizontal" Spacing="4">
                                     <Button Content="Inspect"
                                             Classes="small primary"
+                                            Margin="0"
                                             Command="{Binding $parent[ItemsControl].((vm:DashboardViewModel)DataContext).InspectModelCommand}"
                                             CommandParameter="{Binding}"/>
-                                    <Button Content="Unload"
-                                            Classes="small danger"
-                                            Command="{Binding $parent[ItemsControl].((vm:DashboardViewModel)DataContext).UnloadModelCommand}"
+                                    <Button Content="Inference"
+                                            Classes="small secondary"
+                                            Margin="0"
+                                            Command="{Binding $parent[ItemsControl].((vm:DashboardViewModel)DataContext).RunModelCommand}"
+                                            CommandParameter="{Binding}"/>
+                                    <Button Content="API"
+                                            Classes="small secondary"
+                                            Margin="0"
+                                            Command="{Binding $parent[ItemsControl].((vm:DashboardViewModel)DataContext).ServeModelCommand}"
                                             CommandParameter="{Binding}"/>
                                 </StackPanel>
                             </StackPanel>

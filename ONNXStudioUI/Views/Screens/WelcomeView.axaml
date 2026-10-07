@@ -9,56 +9,74 @@
              x:DataType="vm:WelcomeViewModel">
 
     <ScrollViewer>
-        <StackPanel VerticalAlignment="Center"
-                    HorizontalAlignment="Center"
-                    MaxWidth="520"
-                    Margin="48"
-                    Spacing="16">
+        <Grid ColumnDefinitions="1*,Auto,1*">
+            <StackPanel Grid.Column="1"
+                        Width="560"
+                        VerticalAlignment="Center"
+                        Margin="0,64"
+                        Spacing="28">
 
-            <StackPanel HorizontalAlignment="Center" Spacing="8">
-                <TextBlock Text="ONNX Studio"
-                           Classes="h1"
-                           Foreground="{DynamicResource PrimaryBrush}"
-                           HorizontalAlignment="Center"/>
-                <TextBlock Text="Inspect, run and serve your ONNX models"
-                           Classes="body-secondary"
-                           HorizontalAlignment="Center"/>
+                <!-- Title -->
+                <StackPanel Spacing="6">
+                    <TextBlock Text="ONNX Studio" FontSize="32" FontWeight="Light"/>
+                    <TextBlock Text="Inspect, run and serve your ONNX models"
+                               FontSize="16"
+                               Foreground="{DynamicResource TextSecondaryBrush}"/>
+                </StackPanel>
+
+                <!-- Start -->
+                <StackPanel Spacing="6">
+                    <TextBlock Text="Start" Classes="h3"/>
+                    <Button Classes="link"
+                            Command="{Binding OpenModelCommand}"
+                            IsEnabled="{Binding IsBusy, Converter={StaticResource InverseBoolConverter}}"
+                            Margin="0">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <PathIcon Data="{StaticResource IconFolderOpen}" Width="16" Height="16"/>
+                            <TextBlock Text="Open Model..." Foreground="{DynamicResource PrimaryBrush}"/>
+                            <TextBlock Text="Ctrl+O" Classes="caption" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <controls:Spinner IsVisible="{Binding IsBusy}" HorizontalAlignment="Left"/>
+                    <TextBlock Text="{Binding StatusMessage}" Classes="body-small"/>
+                </StackPanel>
+
+                <!-- Drop zone -->
+                <Border x:Name="DropZone"
+                        Background="{DynamicResource SurfaceBrush}"
+                        BorderBrush="{DynamicResource BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="4"
+                        Padding="28">
+                    <StackPanel Orientation="Horizontal" Spacing="16" HorizontalAlignment="Center">
+                        <PathIcon Data="{StaticResource IconUpload}"
+                                  Width="32" Height="32"
+                                  Foreground="{DynamicResource PrimaryBrush}"/>
+                        <StackPanel VerticalAlignment="Center" Spacing="2">
+                            <TextBlock Text="Drop your .onnx file here" Classes="h4"/>
+                            <TextBlock Text="Anywhere in the window - several files can be dropped at once"
+                                       Classes="body-small"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- Workflow -->
+                <StackPanel Spacing="8">
+                    <TextBlock Text="Workflow" Classes="h3"/>
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <PathIcon Data="{StaticResource IconGraph}" Width="16" Height="16" Foreground="{DynamicResource PrimaryBrush}"/>
+                        <TextBlock Text="Inspect - browse the computation graph, attributes and initializers" Classes="body-secondary"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <PathIcon Data="{StaticResource IconPlay}" Width="16" Height="16" Foreground="{DynamicResource PrimaryBrush}"/>
+                        <TextBlock Text="Inference - fill a generated form and run the model locally" Classes="body-secondary"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <PathIcon Data="{StaticResource IconApi}" Width="16" Height="16" Foreground="{DynamicResource PrimaryBrush}"/>
+                        <TextBlock Text="API - serve it over REST and try it in the sandbox" Classes="body-secondary"/>
+                    </StackPanel>
+                </StackPanel>
             </StackPanel>
-
-            <!-- Drop zone illustration -->
-            <Border Background="{DynamicResource SurfaceBrush}"
-                    BorderBrush="{DynamicResource BorderBrush}"
-                    BorderThickness="2"
-                    CornerRadius="12"
-                    Padding="40"
-                    x:Name="DropZone">
-                <StackPanel Spacing="12">
-                    <PathIcon Data="{StaticResource IconUpload}"
-                              Width="48" Height="48"
-                              Foreground="{DynamicResource PrimaryBrush}"
-                              HorizontalAlignment="Center"/>
-                    <TextBlock Text="Drop your .onnx file here"
-                               Classes="body-secondary"
-                               HorizontalAlignment="Center"/>
-                </StackPanel>
-            </Border>
-
-            <Button Classes="primary large"
-                    Command="{Binding OpenModelCommand}"
-                    IsEnabled="{Binding IsBusy, Converter={StaticResource InverseBoolConverter}}"
-                    HorizontalAlignment="Center">
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                    <PathIcon Data="{StaticResource IconPlus}" Width="14" Height="14"/>
-                    <TextBlock Text="Open Model"/>
-                </StackPanel>
-            </Button>
-
-            <controls:Spinner IsVisible="{Binding IsBusy}"
-                              HorizontalAlignment="Center"/>
-
-            <TextBlock Text="{Binding StatusMessage}"
-                       Classes="body-small"
-                       HorizontalAlignment="Center"/>
-        </StackPanel>
+        </Grid>
     </ScrollViewer>
 </UserControl>

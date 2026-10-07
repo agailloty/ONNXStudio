@@ -80,6 +80,18 @@ public partial class DashboardViewModel : ViewModelBase
     }
 
     [RelayCommand]
+    private void RunModel(OnnxModel model)
+    {
+        _shell.ShowPlayground(model);
+    }
+
+    [RelayCommand]
+    private void ServeModel(OnnxModel model)
+    {
+        _shell.ShowApiConfig(model);
+    }
+
+    [RelayCommand]
     private void UnloadModel(OnnxModel model)
     {
         _registry.Unload(model.Id);

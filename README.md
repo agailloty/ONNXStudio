@@ -14,7 +14,7 @@ serve **ONNX models** — built as a modular monolith on **Avalonia**,
 | Local inference (US-004) | Real ONNX Runtime execution with input validation, LRU session cache, typed outputs (scalars, vectors, top classes) |
 | REST API (US-005) | Embedded Kestrel server (`/models`, `/models/{id}`, `/models/{id}/schema`, `/models/{id}/predict`, `/health`) with CORS and JSON schema/cURL previews |
 | API sandbox (US-006) | Real HTTP requests against the embedded server, status/timing, history with re-run |
-| UX | Light/dark themes, toasts, maximized window, model screens cached per model |
+| UX | VS Code style workbench (activity bar, model explorer side bar, editor tabs, status bar), Dark+/Light+ themes, toasts, model screens cached per model. Shortcuts: Ctrl+O open, Ctrl+B side bar, Ctrl+W close tab, Ctrl+, settings |
 
 ## Solution layout (modular monolith)
 

@@ -33,10 +33,43 @@ public partial class MainWindow : Window
                 await loader.LoadManyAsync(await picker.PickModelFilesAsync());
         };
 
+        DataContextChanged += (_, _) =>
+        {
+            if (DataContext is MainWindowViewModel shell)
+            {
+                shell.PropertyChanged += (_, e) =>
+                {
+                    if (e.PropertyName == nameof(MainWindowViewModel.IsSidebarVisible)) ApplySidebarVisibility(shell.IsSidebarVisible);
+                };
+                ApplySidebarVisibility(shell.IsSidebarVisible);
+            }
+        };
+
         // Wire the storage picker once the window (TopLevel) is created.
         if (App.Services.GetService(typeof(FilePickerService)) is FilePickerService filePicker)
         {
             filePicker.Initialize(() => StorageProvider);
+        }
+    }
+
+    private double _sidebarWidth = 260;
+
+    // The side bar column is collapsed (not just hidden) so the editor reclaims the space.
+    private void ApplySidebarVisibility(bool visible)
+    {
+        if (this.FindControl<Grid>("Workbench") is not { } workbench) return;
+        var column = workbench.ColumnDefinitions[1];
+        if (visible)
+        {
+            column.MinWidth = 180;
+            column.MaxWidth = 520;
+            column.Width = new GridLength(_sidebarWidth);
+        }
+        else
+        {
+            if (column.ActualWidth > 0) _sidebarWidth = column.ActualWidth;
+            column.MinWidth = 0;
+            column.Width = new GridLength(0);
         }
     }
 

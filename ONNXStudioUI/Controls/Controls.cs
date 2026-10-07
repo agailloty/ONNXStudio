@@ -23,8 +23,16 @@ public class StatusBar : TemplatedControl
     public static readonly StyledProperty<string> InfoProperty =
         AvaloniaProperty.Register<StatusBar, string>(nameof(Info), string.Empty);
 
-    public string Status
+    public static readonly StyledProperty<string> ExtraProperty =
+        AvaloniaProperty.Register<StatusBar, string>(nameof(Extra), string.Empty);
+
+    public string Extra
     {
+        get => GetValue(ExtraProperty);
+        set => SetValue(ExtraProperty, value);
+    }
+
+    public string Status    {
         get => GetValue(StatusProperty);
         set => SetValue(StatusProperty, value);
     }
