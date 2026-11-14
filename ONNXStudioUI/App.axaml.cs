@@ -47,7 +47,9 @@ public partial class App : Application
             {
                 if (Services is ServiceProvider provider)
                 {
-                    provider.DisposeAsync().AsTask().GetAwaiter().GetResult();
+                    // Offload async disposal to the ThreadPool so synchronous blocking here cannot
+                    // deadlock with UI SynchronizationContext continuations during host shutdown.
+                    Task.Run(async () => await provider.DisposeAsync().ConfigureAwait(false)).GetAwaiter().GetResult();
                 }
             };
 

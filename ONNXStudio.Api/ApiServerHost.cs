@@ -21,6 +21,7 @@ public sealed class ApiServerHost : IAsyncDisposable
     private readonly ILogger<ApiServerHost>? _logger;
     private WebApplication? _app;
     private readonly SemaphoreSlim _lifecycle = new(1);
+    private int _disposed;
     public event Action? StateChanged;
 
     public int Port { get; private set; }
@@ -62,15 +63,24 @@ public sealed class ApiServerHost : IAsyncDisposable
     /// </summary>
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
+        ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, this);
         await _lifecycle.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, this);
             if (_app != null)
             {
                 return;
             }
 
             var builder = WebApplication.CreateSlimBuilder();
+
+            // Disable ConsoleLifetime so ASP.NET Core does not hook ProcessExit/CancelKeyPress inside the GUI app.
+            builder.Services.AddSingleton<Microsoft.Extensions.Hosting.IHostLifetime, NoOpHostLifetime>();
+            builder.Services.Configure<Microsoft.Extensions.Hosting.HostOptions>(options =>
+            {
+                options.ShutdownTimeout = TimeSpan.FromSeconds(2);
+            });
 
             // Bind Kestrel via configuration and DI (ConfigureWebHostBuilder has no UseUrls)
             builder.Configuration["urls"] = RequestedPort == 0 ? "http://127.0.0.1:0" : $"http://localhost:{RequestedPort}";
@@ -91,12 +101,16 @@ public sealed class ApiServerHost : IAsyncDisposable
             builder.Services.AddSingleton(_registry);
             builder.Services.AddSingleton(_inferenceService);
 
-            var app = builder.Build();
-            app.UseCors("onnxstudio");
-            app.MapOnnxStudioEndpoints();
+            var app = await Task.Run(async () =>
+            {
+                var built = builder.Build();
+                built.UseCors("onnxstudio");
+                built.MapOnnxStudioEndpoints();
 
-            try { await app.StartAsync(cancellationToken).ConfigureAwait(false); }
-            catch { await app.DisposeAsync().ConfigureAwait(false); throw; }
+                try { await built.StartAsync(cancellationToken).ConfigureAwait(false); }
+                catch { await built.DisposeAsync().ConfigureAwait(false); throw; }
+                return built;
+            }).ConfigureAwait(false);
             _app = app;
 
             var server = app.Services.GetRequiredService<Microsoft.AspNetCore.Hosting.Server.IServer>();
@@ -110,36 +124,115 @@ public sealed class ApiServerHost : IAsyncDisposable
 
     public async Task StopAsync()
     {
-        await _lifecycle.WaitAsync().ConfigureAwait(false);
+        if (Volatile.Read(ref _disposed) != 0)
+        {
+            return;
+        }
+
         try
         {
-            if (_app == null) return;
-            var app = _app;
-            try { await app.StopAsync().ConfigureAwait(false); }
+            await _lifecycle.WaitAsync().ConfigureAwait(false);
+        }
+        catch (ObjectDisposedException)
+        {
+            return;
+        }
+
+        bool stopped;
+        try
+        {
+            stopped = await StopAppAsync().ConfigureAwait(false);
+        }
+        finally
+        {
+            try
+            {
+                _lifecycle.Release();
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+        }
+
+        if (stopped && Volatile.Read(ref _disposed) == 0)
+        {
+            StateChanged?.Invoke();
+        }
+    }
+
+    private async Task<bool> StopAppAsync()
+    {
+        if (_app == null)
+        {
+            return false;
+        }
+
+        var app = _app;
+        _app = null;
+        Port = 0;
+
+        // Run ASP.NET Core shutdown on the ThreadPool so internal awaits inside
+        // WebApplication/Kestrel never capture a blocked UI SynchronizationContext.
+        await Task.Run(async () =>
+        {
+            try
+            {
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+                await app.StopAsync(cts.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+            }
             finally
             {
                 await app.DisposeAsync().ConfigureAwait(false);
-                _app = null;
-                Port = 0;
             }
-        }
-        finally { _lifecycle.Release(); }
-        StateChanged?.Invoke();
+        }).ConfigureAwait(false);
+
+        return true;
     }
 
     public async ValueTask DisposeAsync()
     {
+        if (Interlocked.Exchange(ref _disposed, 1) != 0)
+        {
+            return;
+        }
+
         _registry.ModelRemoved -= OnModelRemoved;
-        await StopAsync();
+        await _lifecycle.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            await StopAppAsync().ConfigureAwait(false);
+        }
+        finally
+        {
+            _lifecycle.Release();
+            _lifecycle.Dispose();
+        }
     }
 
     private async void OnModelRemoved(object? sender, ONNXStudio.Core.Models.IModel model)
     {
+        if (Volatile.Read(ref _disposed) != 0)
+        {
+            return;
+        }
+
         try
         {
             if (_registry.Models.Count == 0) await StopAsync().ConfigureAwait(false);
         }
         catch (Exception ex) { _logger?.LogError(ex, "Could not stop the API after unloading the last model"); }
+    }
+
+    /// <summary>
+    /// No-op host lifetime so Kestrel runs embedded inside the desktop app without ConsoleLifetime process hooks.
+    /// </summary>
+    private sealed class NoOpHostLifetime : Microsoft.Extensions.Hosting.IHostLifetime
+    {
+        public Task WaitForStartAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+        public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
     }
 
     private static int ParsePort(string? address)

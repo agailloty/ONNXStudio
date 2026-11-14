@@ -8,6 +8,8 @@ namespace ONNXStudioUI.Views;
 
 public partial class MainWindow : Window
 {
+    private MainWindowViewModel? _boundShell;
+
     public MainWindow()
     {
         InitializeComponent();
@@ -35,12 +37,16 @@ public partial class MainWindow : Window
 
         DataContextChanged += (_, _) =>
         {
+            if (_boundShell != null)
+            {
+                _boundShell.PropertyChanged -= OnShellPropertyChanged;
+                _boundShell = null;
+            }
+
             if (DataContext is MainWindowViewModel shell)
             {
-                shell.PropertyChanged += (_, e) =>
-                {
-                    if (e.PropertyName == nameof(MainWindowViewModel.IsSidebarVisible)) ApplySidebarVisibility(shell.IsSidebarVisible);
-                };
+                _boundShell = shell;
+                shell.PropertyChanged += OnShellPropertyChanged;
                 ApplySidebarVisibility(shell.IsSidebarVisible);
             }
         };
@@ -49,6 +55,25 @@ public partial class MainWindow : Window
         if (App.Services.GetService(typeof(FilePickerService)) is FilePickerService filePicker)
         {
             filePicker.Initialize(() => StorageProvider);
+        }
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        if (_boundShell != null)
+        {
+            _boundShell.PropertyChanged -= OnShellPropertyChanged;
+            _boundShell = null;
+        }
+
+        base.OnClosed(e);
+    }
+
+    private void OnShellPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (sender is MainWindowViewModel shell && e.PropertyName == nameof(MainWindowViewModel.IsSidebarVisible))
+        {
+            ApplySidebarVisibility(shell.IsSidebarVisible);
         }
     }
 

@@ -46,7 +46,7 @@ public sealed class PythonInterpreterItem
 /// user pick one found on the machine or provide their own, or have ONNX Studio
 /// download and install Python and the required packages in its own folder.
 /// </summary>
-public partial class PythonRuntimeViewModel : ObservableObject
+public partial class PythonRuntimeViewModel : ObservableObject, IDisposable
 {
     private const int MaxLogLines = 300;
 
@@ -55,6 +55,8 @@ public partial class PythonRuntimeViewModel : ObservableObject
     private readonly IToastService _toast;
     private readonly System.Collections.Generic.List<string> _logLines = new();
     private CancellationTokenSource? _operation;
+    private CancellationTokenSource? _queryCts;
+    private int _disposed;
     private bool _updatingList;
 
     public ObservableCollection<PythonInterpreterItem> Interpreters { get; } = new();
@@ -116,19 +118,22 @@ public partial class PythonRuntimeViewModel : ObservableObject
     [RelayCommand]
     public async Task RefreshAsync()
     {
-        if (IsBusy) return;
+        if (IsBusy || Volatile.Read(ref _disposed) != 0) return;
         IsBusy = true;
         IsProgressIndeterminate = true;
         ProgressMessage = "Looking for Python interpreters...";
         try
         {
-            await ReloadAsync(refreshActive: true).ConfigureAwait(true);
+            await RefreshInternalAsync(refreshActive: true).ConfigureAwait(true);
         }
         finally
         {
-            IsBusy = false;
-            IsProgressIndeterminate = false;
-            ProgressMessage = null;
+            if (Volatile.Read(ref _disposed) == 0)
+            {
+                IsBusy = false;
+                IsProgressIndeterminate = false;
+                ProgressMessage = null;
+            }
         }
     }
 
@@ -189,6 +194,7 @@ public partial class PythonRuntimeViewModel : ObservableObject
     [RelayCommand]
     public async Task UseCustomAsync()
     {
+        if (Volatile.Read(ref _disposed) != 0) return;
         Error = null;
         if (string.IsNullOrWhiteSpace(CustomPath))
         {
@@ -196,12 +202,14 @@ public partial class PythonRuntimeViewModel : ObservableObject
             return;
         }
 
+        if (BeginQueryCancellation() is not { } query) return;
         IsBusy = true;
         IsProgressIndeterminate = true;
         ProgressMessage = "Checking the interpreter...";
         try
         {
-            var probed = await _runtime.ProbeCustomAsync(CustomPath).ConfigureAwait(true);
+            var probed = await _runtime.ProbeCustomAsync(CustomPath, query.Token).ConfigureAwait(true);
+            if (Volatile.Read(ref _disposed) != 0 || query.Token.IsCancellationRequested) return;
             if (probed.IsFailure)
             {
                 Error = probed.Error!.Message;
@@ -209,14 +217,21 @@ public partial class PythonRuntimeViewModel : ObservableObject
             }
 
             _runtime.Select(new PythonSelection(probed.Value!.ExecutablePath, PythonSource.Custom));
-            await ReloadAsync(refreshActive: true).ConfigureAwait(true);
+            await ReloadAsync(refreshActive: true, query.Token).ConfigureAwait(true);
             _toast.Show("Using " + probed.Value.ExecutablePath);
+        }
+        catch (OperationCanceledException)
+        {
         }
         finally
         {
-            IsBusy = false;
-            IsProgressIndeterminate = false;
-            ProgressMessage = null;
+            EndQueryCancellation(query.Owner);
+            if (Volatile.Read(ref _disposed) == 0)
+            {
+                IsBusy = false;
+                IsProgressIndeterminate = false;
+                ProgressMessage = null;
+            }
         }
     }
 
@@ -267,17 +282,38 @@ public partial class PythonRuntimeViewModel : ObservableObject
         {
             _operation.Dispose();
             _operation = null;
-            await ReloadAsync(refreshActive: true).ConfigureAwait(true);
-            IsBusy = false;
-            IsProgressIndeterminate = false;
-            ProgressMessage = null;
+            if (Volatile.Read(ref _disposed) == 0)
+            {
+                await RefreshInternalAsync(refreshActive: true).ConfigureAwait(true);
+                IsBusy = false;
+                IsProgressIndeterminate = false;
+                ProgressMessage = null;
+            }
         }
     }
 
-    private async Task ReloadAsync(bool refreshActive)
+    private async Task RefreshInternalAsync(bool refreshActive)
     {
+        if (BeginQueryCancellation() is not { } query) return;
+        try
+        {
+            await ReloadAsync(refreshActive, query.Token).ConfigureAwait(true);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        finally
+        {
+            EndQueryCancellation(query.Owner);
+        }
+    }
+
+    private async Task ReloadAsync(bool refreshActive, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
         IsManagedInstalled = _runtime.IsManagedInstalled;
-        var found = await _runtime.DiscoverAsync().ConfigureAwait(true);
+        var found = await _runtime.DiscoverAsync(cancellationToken).ConfigureAwait(true);
+        if (Volatile.Read(ref _disposed) != 0 || cancellationToken.IsCancellationRequested) return;
         var selection = _runtime.Selection;
 
         _updatingList = true;
@@ -291,7 +327,7 @@ public partial class PythonRuntimeViewModel : ObservableObject
             if (!selection.IsAutomatic && Interpreters.All(i => i.Interpreter == null ||
                     !string.Equals(i.Interpreter.ExecutablePath, selection.InterpreterPath, StringComparison.OrdinalIgnoreCase)))
             {
-                var probed = await _runtime.ProbeCustomAsync(selection.InterpreterPath!).ConfigureAwait(true);
+                var probed = await _runtime.ProbeCustomAsync(selection.InterpreterPath!, cancellationToken).ConfigureAwait(true);
                 if (probed.IsSuccess) Interpreters.Add(new PythonInterpreterItem(probed.Value));
             }
 
@@ -305,13 +341,74 @@ public partial class PythonRuntimeViewModel : ObservableObject
             _updatingList = false;
         }
 
-        await RefreshStatusAsync(refreshActive).ConfigureAwait(true);
+        await RefreshStatusCoreAsync(refreshActive, cancellationToken).ConfigureAwait(true);
     }
 
     private async Task RefreshStatusAsync(bool refresh = true)
     {
-        var active = await _runtime.GetActiveAsync(refresh).ConfigureAwait(true);
+        if (BeginQueryCancellation() is not { } query) return;
+        try
+        {
+            await RefreshStatusCoreAsync(refresh, query.Token).ConfigureAwait(true);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        finally
+        {
+            EndQueryCancellation(query.Owner);
+        }
+    }
+
+    private async Task RefreshStatusCoreAsync(bool refresh, CancellationToken cancellationToken)
+    {
+        var active = await _runtime.GetActiveAsync(refresh, cancellationToken).ConfigureAwait(true);
+        if (Volatile.Read(ref _disposed) != 0 || cancellationToken.IsCancellationRequested) return;
         Status = Describe(active);
+    }
+
+    private (CancellationTokenSource Owner, CancellationToken Token)? BeginQueryCancellation()
+    {
+        if (Volatile.Read(ref _disposed) != 0) return null;
+        var next = new CancellationTokenSource();
+        var previous = Interlocked.Exchange(ref _queryCts, next);
+        previous?.Cancel();
+        previous?.Dispose();
+        var token = next.Token;
+        if (Volatile.Read(ref _disposed) != 0)
+        {
+            EndQueryCancellation(next);
+            return null;
+        }
+        return (next, token);
+    }
+
+    private void EndQueryCancellation(CancellationTokenSource owner)
+    {
+        if (Interlocked.CompareExchange(ref _queryCts, null, owner) == owner)
+        {
+            owner.Dispose();
+        }
+    }
+
+    public void Dispose()
+    {
+        if (Interlocked.Exchange(ref _disposed, 1) != 0)
+        {
+            return;
+        }
+
+        try
+        {
+            _operation?.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+
+        var queryCts = Interlocked.Exchange(ref _queryCts, null);
+        queryCts?.Cancel();
+        queryCts?.Dispose();
     }
 
     internal static string Describe(PythonInterpreter? active)

@@ -32,7 +32,8 @@ public sealed class InferenceSessionManager : IInferenceSessionManager
 {
     private readonly object _sync = new();
     private readonly int _capacity;
-    private readonly Dictionary<string, LinkedListNode<(string Path, InferenceSession Session)>> _cache = new();
+    private readonly Dictionary<string, LinkedListNode<(string Path, InferenceSession Session)>> _cache = new(
+        OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
     private readonly LinkedList<(string Path, InferenceSession Session)> _lru = new();
     private readonly Dictionary<InferenceSession, int> _leases = new();
     private readonly HashSet<InferenceSession> _retired = new();

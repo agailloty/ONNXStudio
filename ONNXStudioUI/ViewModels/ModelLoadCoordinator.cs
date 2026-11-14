@@ -20,7 +20,7 @@ public interface IModelLoadCoordinator
     Task RegisterAsync(IModel model);
 }
 
-public sealed class ModelLoadCoordinator : IModelLoadCoordinator
+public sealed class ModelLoadCoordinator : IModelLoadCoordinator, IDisposable
 {
     private readonly MainWindowViewModel _shell;
     private readonly IModelLoader _loader;
@@ -28,6 +28,9 @@ public sealed class ModelLoadCoordinator : IModelLoadCoordinator
     private readonly IToastService _toast;
     private readonly ONNXStudio.Api.ApiServerHost _apiHost;
     private readonly SemaphoreSlim _loadGate = new(1);
+    private readonly object _cancelLock = new();
+    private CancellationTokenSource? _activeCancellation;
+    private int _disposed;
 
     public ModelLoadCoordinator(
         MainWindowViewModel shell,
@@ -58,8 +61,22 @@ public sealed class ModelLoadCoordinator : IModelLoadCoordinator
 
     private async Task<bool> LoadCoreAsync(string filePath)
     {
+        if (Volatile.Read(ref _disposed) != 0)
+        {
+            return false;
+        }
+
         var loading = new ModelLoadingViewModel(filePath);
         using var cancellation = new CancellationTokenSource();
+        lock (_cancelLock)
+        {
+            if (_disposed != 0)
+            {
+                return false;
+            }
+            _activeCancellation = cancellation;
+        }
+
         void Cancel()
         {
             cancellation.Cancel();
@@ -70,6 +87,7 @@ public sealed class ModelLoadCoordinator : IModelLoadCoordinator
 
         _shell.SetCurrentScreen(loading);
         loading.SetProgress(10, "Validating file...");
+        var hasError = false;
 
         try
         {
@@ -85,6 +103,7 @@ public sealed class ModelLoadCoordinator : IModelLoadCoordinator
                 var error = result.Error!;
                 loading.SetError(error.Message);
                 _toast.Show(error.Message);
+                hasError = true;
                 return false;
             }
 
@@ -105,32 +124,84 @@ public sealed class ModelLoadCoordinator : IModelLoadCoordinator
         catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { }
         catch (Exception)
         {
+            hasError = true;
             loading.SetError("The model could not be loaded. Check the file and try again.");
         }
         finally
         {
-            // Keep the error screen's Back/Cancel action usable after loading finishes.
+            lock (_cancelLock)
+            {
+                if (ReferenceEquals(_activeCancellation, cancellation))
+                {
+                    _activeCancellation = null;
+                }
+            }
+
+            // Keep the error screen's Back/Cancel action usable after a failed load.
             loading.CancelRequested -= Cancel;
-            loading.CancelRequested += () => { if (_shell.Models.Count == 0) _shell.ShowWelcome(); else _shell.ShowDashboard(); };
+            if (hasError)
+            {
+                loading.CancelRequested += () => { if (_shell.Models.Count == 0) _shell.ShowWelcome(); else _shell.ShowDashboard(); };
+            }
         }
         return false;
     }
 
     public async Task LoadManyAsync(IEnumerable<string> filePaths)
     {
+        if (Volatile.Read(ref _disposed) != 0)
+        {
+            return;
+        }
+
         var paths = filePaths.ToList();
 
         // joblib / pickle files open their own screen instead of the ONNX loading flow.
         foreach (var path in paths.Where(PythonModel.IsPythonModelFile)) _shell.OpenPythonModel(path);
 
-        await _loadGate.WaitAsync();
+        try
+        {
+            await _loadGate.WaitAsync();
+        }
+        catch (ObjectDisposedException)
+        {
+            return;
+        }
+
         try
         {
             foreach (var path in paths.Where(p => !PythonModel.IsPythonModelFile(p)))
             {
-                if (!await LoadCoreAsync(path)) break;
+                if (Volatile.Read(ref _disposed) != 0 || !await LoadCoreAsync(path)) break;
             }
         }
-        finally { _loadGate.Release(); }
+        finally
+        {
+            try
+            {
+                _loadGate.Release();
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+        }
+    }
+
+    public void Dispose()
+    {
+        if (Interlocked.Exchange(ref _disposed, 1) != 0)
+        {
+            return;
+        }
+
+        CancellationTokenSource? active;
+        lock (_cancelLock)
+        {
+            active = _activeCancellation;
+            _activeCancellation = null;
+        }
+
+        active?.Cancel();
+        _loadGate.Dispose();
     }
 }

@@ -25,7 +25,11 @@ public sealed class GraphViewer : Control
     public ComputationGraph? Graph { get => GetValue(GraphProperty); set => SetValue(GraphProperty, value); }
     public ICommand? SelectNodeCommand { get => GetValue(SelectNodeCommandProperty); set => SetValue(SelectNodeCommandProperty, value); }
 
+    private static readonly IPen EdgePen = new Pen(Brushes.SlateGray, 1.5).ToImmutable();
     private readonly Dictionary<string, Rect> _positions = new();
+    private readonly Dictionary<IBrush, (IPen Normal, IPen Selected)> _penCache = new();
+    private readonly Dictionary<string, (FormattedText OpType, FormattedText Name)> _textCache = new();
+    private IBrush? _cachedForeground;
     private Vector _offset = new(24, 24);
     private double _zoom = 1;
     private Point? _lastPointer;
@@ -58,6 +62,8 @@ public sealed class GraphViewer : Control
     private void LayoutGraph()
     {
         _positions.Clear();
+        _textCache.Clear();
+        _penCache.Clear();
         _offset = new Vector(24, 24);
         if (Nodes == null || Graph == null) return;
         var ids = Nodes.Select(n => n.Node.Id).ToHashSet();
@@ -93,28 +99,56 @@ public sealed class GraphViewer : Control
         if (Nodes == null || Graph == null) return;
         using var transform = context.PushTransform(Matrix.CreateScale(_zoom, _zoom) * Matrix.CreateTranslation(_offset));
         var viewport = new Rect(-_offset.X / _zoom, -_offset.Y / _zoom, Bounds.Width / _zoom, Bounds.Height / _zoom);
-        var edgePen = new Pen(Brushes.SlateGray, 1.5);
         foreach (var edge in Graph.Edges)
         {
             if (!_positions.TryGetValue(edge.FromNodeId, out var from) || !_positions.TryGetValue(edge.ToNodeId, out var to)) continue;
             var start = new Point(from.Right, from.Center.Y);
             var end = new Point(to.Left, to.Center.Y);
             if (!viewport.Intersects(new Rect(start, end).Inflate(2))) continue;
-            context.DrawLine(edgePen, start, end);
-            context.DrawLine(edgePen, end, end + new Vector(-7, -4));
-            context.DrawLine(edgePen, end, end + new Vector(-7, 4));
+            context.DrawLine(EdgePen, start, end);
+            context.DrawLine(EdgePen, end, end + new Vector(-7, -4));
+            context.DrawLine(EdgePen, end, end + new Vector(-7, 4));
         }
         var background = this.TryFindResource("SurfaceElevatedBrush", out var surface) ? surface as IBrush : null;
         var foreground = this.TryFindResource("TextPrimaryBrush", out var text) ? text as IBrush : null;
+        if (!Equals(_cachedForeground, foreground))
+        {
+            _textCache.Clear();
+            _cachedForeground = foreground;
+        }
         foreach (var node in Nodes)
         {
             var rect = _positions[node.Node.Id];
             if (!viewport.Intersects(rect)) continue;
-            context.DrawRectangle(background ?? Brushes.DarkSlateGray, new Pen(node.CategoryBrush, node.Node.Id == _selected ? 4 : 2), rect, 6, 6);
+            context.DrawRectangle(background ?? Brushes.DarkSlateGray, GetNodePen(node.CategoryBrush, node.Node.Id == _selected), rect, 6, 6);
             using var clip = context.PushClip(rect.Deflate(6));
-            context.DrawText(Text(node.OpType, 14, foreground ?? Brushes.White), rect.TopLeft + new Vector(10, 7));
-            context.DrawText(Text(node.Name, 11, foreground ?? Brushes.LightGray), rect.TopLeft + new Vector(10, 31));
+            if (!_textCache.TryGetValue(node.Node.Id, out var texts))
+            {
+                texts = (
+                    Text(node.OpType, 14, foreground ?? Brushes.White),
+                    Text(node.Name, 11, foreground ?? Brushes.LightGray));
+                _textCache[node.Node.Id] = texts;
+            }
+            context.DrawText(texts.OpType, rect.TopLeft + new Vector(10, 7));
+            context.DrawText(texts.Name, rect.TopLeft + new Vector(10, 31));
         }
+    }
+
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnDetachedFromVisualTree(e);
+        _textCache.Clear();
+        _penCache.Clear();
+    }
+
+    private IPen GetNodePen(IBrush brush, bool selected)
+    {
+        if (!_penCache.TryGetValue(brush, out var pair))
+        {
+            pair = (new Pen(brush, 2).ToImmutable(), new Pen(brush, 4).ToImmutable());
+            _penCache[brush] = pair;
+        }
+        return selected ? pair.Selected : pair.Normal;
     }
 
     private static FormattedText Text(string value, double size, IBrush brush) =>

@@ -28,6 +28,8 @@ public partial class PythonModelViewModel : ViewModelBase, IDisposable
     private readonly IToastService _toast;
     private readonly Func<IModelLoadCoordinator?> _coordinator;
     private CancellationTokenSource? _operation;
+    private CancellationTokenSource? _runtimeCts;
+    private int _disposed;
     private string? _convertedPath;
 
     public PythonModel Model { get; }
@@ -46,11 +48,21 @@ public partial class PythonModelViewModel : ViewModelBase, IDisposable
 
     // ----- loaded model -----
 
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsLoaded))]
-    [NotifyPropertyChangedFor(nameof(CanConvert))]
-    [NotifyPropertyChangedFor(nameof(LoadButtonText))]
     private SklearnModel? _loadedModel;
+
+    public SklearnModel? LoadedModel
+    {
+        get => _loadedModel;
+        private set
+        {
+            if (SetProperty(ref _loadedModel, value))
+            {
+                OnPropertyChanged(nameof(IsLoaded));
+                OnPropertyChanged(nameof(CanConvert));
+                OnPropertyChanged(nameof(LoadButtonText));
+            }
+        }
+    }
 
     [ObservableProperty]
     private string? _loadError;
@@ -128,14 +140,42 @@ public partial class PythonModelViewModel : ViewModelBase, IDisposable
         _ = RefreshRuntimeAsync();
     }
 
-    private void OnRuntimeChanged() => Avalonia.Threading.Dispatcher.UIThread.Post(() => _ = RefreshRuntimeAsync());
+    private void OnRuntimeChanged()
+    {
+        if (Volatile.Read(ref _disposed) != 0) return;
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            if (Volatile.Read(ref _disposed) == 0) _ = RefreshRuntimeAsync();
+        });
+    }
 
     [RelayCommand]
     public async Task RefreshRuntimeAsync()
     {
-        var active = await _runtime.GetActiveAsync().ConfigureAwait(true);
-        RuntimeReady = active is { CanRunInference: true };
-        RuntimeStatus = PythonRuntimeViewModel.Describe(active);
+        if (Volatile.Read(ref _disposed) != 0) return;
+        var cts = new CancellationTokenSource();
+        var previous = Interlocked.Exchange(ref _runtimeCts, cts);
+        previous?.Cancel();
+        previous?.Dispose();
+        var token = cts.Token;
+
+        try
+        {
+            var active = await _runtime.GetActiveAsync(cancellationToken: token).ConfigureAwait(true);
+            if (Volatile.Read(ref _disposed) != 0 || token.IsCancellationRequested) return;
+            RuntimeReady = active is { CanRunInference: true };
+            RuntimeStatus = PythonRuntimeViewModel.Describe(active);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        finally
+        {
+            if (Interlocked.CompareExchange(ref _runtimeCts, null, cts) == cts)
+            {
+                cts.Dispose();
+            }
+        }
     }
 
     [RelayCommand]
@@ -329,7 +369,23 @@ public partial class PythonModelViewModel : ViewModelBase, IDisposable
 
     public void Dispose()
     {
+        if (Interlocked.Exchange(ref _disposed, 1) != 0)
+        {
+            return;
+        }
+
         _runtime.Changed -= OnRuntimeChanged;
-        _operation?.Cancel();
+        try
+        {
+            _operation?.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+
+        var runtimeCts = Interlocked.Exchange(ref _runtimeCts, null);
+        runtimeCts?.Cancel();
+        runtimeCts?.Dispose();
+        _loadedModel = null;
     }
 }

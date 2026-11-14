@@ -47,6 +47,13 @@ public partial class SettingsViewModel : ViewModelBase
         ApiPort = apiHost.RequestedPort;
     }
 
+    /// <summary>Refreshes live theme and API port values when reopening the cached screen.</summary>
+    public void SyncFromServices()
+    {
+        SelectedTheme = _theme.Current;
+        ApiPort = _apiHost.RequestedPort;
+    }
+
     partial void OnSelectedThemeChanged(AppTheme value)
     {
         // Applied live so the user sees the switch immediately

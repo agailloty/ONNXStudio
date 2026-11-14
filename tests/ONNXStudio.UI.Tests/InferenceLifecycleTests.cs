@@ -62,6 +62,43 @@ public class InferenceLifecycleTests
         Assert.False(host.IsRunning);
     }
 
+    [Fact]
+    public async Task DisposingApiServerHostOnBlockedSynchronizationContextDoesNotDeadlock()
+    {
+        await using var services = UiTestSetup.Services();
+        var host = services.GetRequiredService<ApiServerHost>();
+        host.RequestedPort = 0;
+        await host.StartAsync(TestContext.Current.CancellationToken);
+        Assert.True(host.IsRunning);
+
+        Task disposeTask;
+        var previous = SynchronizationContext.Current;
+        try
+        {
+            SynchronizationContext.SetSynchronizationContext(new BlockingSynchronizationContext());
+            disposeTask = host.DisposeAsync().AsTask();
+        }
+        finally
+        {
+            SynchronizationContext.SetSynchronizationContext(previous);
+        }
+
+        await disposeTask.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+        Assert.False(host.IsRunning);
+    }
+
+    private sealed class BlockingSynchronizationContext : SynchronizationContext
+    {
+        public override void Post(SendOrPostCallback d, object? state)
+        {
+            // Intentionally drop posted continuations while the caller thread is blocked,
+            // reproducing a UI SynchronizationContext during synchronous shutdown.
+        }
+
+        public override void Send(SendOrPostCallback d, object? state)
+            => throw new InvalidOperationException("Synchronous send on blocked context.");
+    }
+
     [Theory]
     [InlineData(1, true)]
     [InlineData(7, false)]

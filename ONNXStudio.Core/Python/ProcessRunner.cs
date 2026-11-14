@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text;
 
@@ -27,10 +28,18 @@ public interface IProcessRunner
     Task<ProcessResult> RunAsync(ProcessSpec spec, CancellationToken cancellationToken = default);
 }
 
-public sealed class ProcessRunner : IProcessRunner
+public sealed class ProcessRunner : IProcessRunner, IDisposable
 {
+    private readonly ConcurrentDictionary<long, Process> _activeProcesses = new();
+    private readonly object _shutdownLock = new();
+    private readonly CancellationTokenSource _shutdown = new();
+    private long _nextId;
+    private int _disposed;
+
     public async Task<ProcessResult> RunAsync(ProcessSpec spec, CancellationToken cancellationToken = default)
     {
+        ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, this);
+        cancellationToken.ThrowIfCancellationRequested();
         var startInfo = new ProcessStartInfo(spec.FileName)
         {
             RedirectStandardOutput = true,
@@ -69,28 +78,70 @@ public sealed class ProcessRunner : IProcessRunner
         };
 
         process.Start();
-        process.StandardInput.Close();
-        process.BeginOutputReadLine();
-        process.BeginErrorReadLine();
-
-        using var timeoutSource = new CancellationTokenSource();
-        if (spec.Timeout is { } timeout) timeoutSource.CancelAfter(timeout);
-        using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutSource.Token);
-
+        var processId = Interlocked.Increment(ref _nextId);
+        _activeProcesses.TryAdd(processId, process);
         try
         {
-            await process.WaitForExitAsync(linked.Token).ConfigureAwait(false);
-            // Parameterless overload flushes the asynchronous output readers.
-            process.WaitForExit();
+            process.StandardInput.Close();
+            process.BeginOutputReadLine();
+            process.BeginErrorReadLine();
+
+            using var timeoutSource = new CancellationTokenSource();
+            if (spec.Timeout is { } timeout) timeoutSource.CancelAfter(timeout);
+
+            CancellationTokenSource linked;
+            lock (_shutdownLock)
+            {
+                if (_disposed != 0)
+                {
+                    TryKill(process);
+                    throw new ObjectDisposedException(nameof(ProcessRunner));
+                }
+
+                linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutSource.Token, _shutdown.Token);
+            }
+
+            using (linked)
+            {
+                try
+                {
+                    await process.WaitForExitAsync(linked.Token).ConfigureAwait(false);
+                    // Parameterless overload flushes the asynchronous output readers.
+                    process.WaitForExit();
+                }
+                catch (OperationCanceledException)
+                {
+                    TryKill(process);
+                    if (cancellationToken.IsCancellationRequested || Volatile.Read(ref _disposed) != 0) throw;
+                    return new ProcessResult(-1, Snapshot(stdout), Snapshot(stderr), TimedOut: true);
+                }
+            }
+
+            return new ProcessResult(process.ExitCode, Snapshot(stdout), Snapshot(stderr), TimedOut: false);
         }
-        catch (OperationCanceledException)
+        finally
         {
-            TryKill(process);
-            if (cancellationToken.IsCancellationRequested) throw;
-            return new ProcessResult(-1, Snapshot(stdout), Snapshot(stderr), TimedOut: true);
+            _activeProcesses.TryRemove(processId, out _);
+        }
+    }
+
+    public void Dispose()
+    {
+        lock (_shutdownLock)
+        {
+            if (Interlocked.Exchange(ref _disposed, 1) != 0)
+            {
+                return;
+            }
+
+            _shutdown.Cancel();
+            _shutdown.Dispose();
         }
 
-        return new ProcessResult(process.ExitCode, Snapshot(stdout), Snapshot(stderr), TimedOut: false);
+        foreach (var entry in _activeProcesses)
+        {
+            TryKill(entry.Value);
+        }
     }
 
     private static string Snapshot(StringBuilder builder)
@@ -102,9 +153,13 @@ public sealed class ProcessRunner : IProcessRunner
     {
         try
         {
-            if (!process.HasExited) process.Kill(entireProcessTree: true);
+            if (!process.HasExited)
+            {
+                process.Kill(entireProcessTree: true);
+                process.WaitForExit(500);
+            }
         }
-        catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception)
+        catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception or ObjectDisposedException)
         {
         }
     }

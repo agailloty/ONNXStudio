@@ -146,7 +146,7 @@ internal sealed class OnnxInferenceBackend : IInferenceBackend
             switch (type)
             {
                 case DataType.Float16:
-                    outputs.Add(new TensorOutput(name, type, shape, ortValue.GetTensorDataAsSpan<Float16>().ToArray().Select(v => (float)v).ToArray()));
+                    outputs.Add(new TensorOutput(name, type, shape, ConvertFloat16ToFloat32(ortValue.GetTensorDataAsSpan<Float16>())));
                     break;
                 case DataType.String:
                     outputs.Add(new TensorOutput(name, type, shape, ortValue.GetStringTensorAsArray()));
@@ -189,5 +189,15 @@ internal sealed class OnnxInferenceBackend : IInferenceBackend
         }
 
         return outputs;
+    }
+
+    private static float[] ConvertFloat16ToFloat32(ReadOnlySpan<Float16> source)
+    {
+        var result = new float[source.Length];
+        for (int i = 0; i < source.Length; i++)
+        {
+            result[i] = (float)source[i];
+        }
+        return result;
     }
 }

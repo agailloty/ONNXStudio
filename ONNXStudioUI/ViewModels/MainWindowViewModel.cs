@@ -26,6 +26,9 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     private readonly IThemeService _theme;
     private readonly ILogger<MainWindowViewModel> _logger;
     private readonly Dictionary<string, ViewModelBase> _screenCache = new();
+    private ViewModels.Screens.WelcomeViewModel? _welcomeViewModel;
+    private ViewModels.Screens.DashboardViewModel? _dashboardViewModel;
+    private ViewModels.Screens.SettingsViewModel? _settingsViewModel;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsDashboardActive))]
@@ -111,30 +114,41 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     [RelayCommand]
     public void ShowWelcome()
     {
-        CurrentViewModel = _services.GetService(typeof(ViewModels.Screens.WelcomeViewModel)) is ViewModels.Screens.WelcomeViewModel welcome
-            ? welcome
-            : null;
+        _welcomeViewModel ??= _services.GetService(typeof(ViewModels.Screens.WelcomeViewModel)) as ViewModels.Screens.WelcomeViewModel;
+        CurrentViewModel = _welcomeViewModel;
         StatusMessage = Models.Count == 0 ? "No model loaded" : $"{Models.Count} model(s) loaded";
     }
 
     [RelayCommand]
     public void ShowDashboard()
     {
-        CurrentViewModel = _services.GetService(typeof(ViewModels.Screens.DashboardViewModel)) is ViewModels.Screens.DashboardViewModel dashboard
-            ? dashboard
-            : null;
+        _dashboardViewModel ??= _services.GetService(typeof(ViewModels.Screens.DashboardViewModel)) as ViewModels.Screens.DashboardViewModel;
+        _dashboardViewModel?.Refresh();
+        CurrentViewModel = _dashboardViewModel;
     }
 
     public void ShowSettings()
     {
-        CurrentViewModel = new ViewModels.Screens.SettingsViewModel(
-            this,
-            _services.GetRequiredService<IThemeService>(),
-            _services.GetRequiredService<IToastService>(),
-            _services.GetRequiredService<ONNXStudio.Api.ApiServerHost>(),
-            _services.GetRequiredService<SettingsStore>(),
-            PythonRuntime);
-        _ = PythonRuntime.RefreshAsync();
+        if (_settingsViewModel == null)
+        {
+            _settingsViewModel = new ViewModels.Screens.SettingsViewModel(
+                this,
+                _services.GetRequiredService<IThemeService>(),
+                _services.GetRequiredService<IToastService>(),
+                _services.GetRequiredService<ONNXStudio.Api.ApiServerHost>(),
+                _services.GetRequiredService<SettingsStore>(),
+                PythonRuntime);
+        }
+        else
+        {
+            _settingsViewModel.SyncFromServices();
+        }
+
+        CurrentViewModel = _settingsViewModel;
+        if (PythonRuntime.Interpreters.Count == 0 && !PythonRuntime.IsBusy)
+        {
+            _ = PythonRuntime.RefreshAsync();
+        }
     }
 
     /// <summary>Shared so an installation keeps running (and reporting) while the user leaves the settings.</summary>
@@ -473,6 +487,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             }
             OnPropertyChanged(nameof(HasModels));
             UpdateStatusDetails();
+            _dashboardViewModel?.Refresh();
             StatusMessage = $"Model '{model.Name}' loaded";
         });
     }
@@ -485,6 +500,11 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             if (ExplorerNodes.FirstOrDefault(n => n.Model.Id == model.Id) is { } node) ExplorerNodes.Remove(node);
             OnPropertyChanged(nameof(HasModels));
             UpdateStatusDetails();
+            _dashboardViewModel?.Refresh();
+            if (model is SklearnModel sklearn)
+            {
+                _pythonRegistry.Unload(sklearn.File.Id);
+            }
             foreach (var key in _screenCache.Keys.Where(k => k.EndsWith(":" + model.Id, StringComparison.Ordinal)).ToArray())
             {
                 if (_screenCache.Remove(key, out var screen))
@@ -524,5 +544,13 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         _api.StateChanged -= OnApiStateChanged;
         foreach (var screen in _screenCache.Values.OfType<IDisposable>()) screen.Dispose();
         _screenCache.Clear();
+        (_welcomeViewModel as IDisposable)?.Dispose();
+        (_dashboardViewModel as IDisposable)?.Dispose();
+        (_settingsViewModel as IDisposable)?.Dispose();
+        _welcomeViewModel = null;
+        _dashboardViewModel = null;
+        _settingsViewModel = null;
+        _pythonRuntime?.Dispose();
+        _pythonRuntime = null;
     }
 }

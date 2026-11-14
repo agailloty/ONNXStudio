@@ -15,7 +15,7 @@ public interface IInferenceService
         CancellationToken cancellationToken = default);
 }
 
-public sealed class InferenceService : IInferenceService
+public sealed class InferenceService : IInferenceService, IDisposable
 {
     private readonly IReadOnlyList<IInferenceBackend> _backends;
     private readonly ILogger<InferenceService> _logger;
@@ -134,4 +134,5 @@ public sealed class InferenceService : IInferenceService
         return null;
     }
 
+    public void Dispose() => _concurrencyGate.Dispose();
 }

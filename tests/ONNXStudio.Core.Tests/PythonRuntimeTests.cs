@@ -734,4 +734,35 @@ public class ProcessRunnerTests
         Assert.True(result.TimedOut);
         Assert.False(result.Succeeded);
     }
+
+    [Fact]
+    public async Task DisposingRunnerKillsActiveProcesses()
+    {
+        var file = OperatingSystem.IsWindows() ? "cmd.exe" : "/bin/sh";
+        var args = OperatingSystem.IsWindows()
+            ? new[] { "/c", "echo started & ping -n 30 127.0.0.1 >nul" }
+            : new[] { "-c", "echo started; sleep 30" };
+
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var runner = new ProcessRunner();
+        var runTask = runner.RunAsync(new ProcessSpec(file, args, OnOutputLine: line =>
+        {
+            if (line.Contains("started", StringComparison.Ordinal))
+            {
+                started.TrySetResult();
+            }
+        }));
+
+        await started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        runner.Dispose();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => runTask.WaitAsync(TimeSpan.FromSeconds(5)));
+        stopwatch.Stop();
+
+        Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(5));
+        await Assert.ThrowsAsync<ObjectDisposedException>(
+            () => runner.RunAsync(new ProcessSpec(file, args)));
+    }
 }

@@ -107,10 +107,10 @@ public sealed class ModelLoader : IModelLoader
                     $"Opset: {raw.OpsetVersion}, IR version: {raw.IrVersion}"));
         }
 
-        // Validate the model with ONNX Runtime (it also owns the inference session later).
+        // Validate the model with ONNX Runtime via file path to avoid duplicating the entire byte buffer.
         try
         {
-            using var session = new InferenceSession(bytes);
+            using var session = new InferenceSession(filePath);
             if (raw.Inputs.Count == 0)
             {
                 return Result<OnnxModel, ModelLoadError>.Failure(

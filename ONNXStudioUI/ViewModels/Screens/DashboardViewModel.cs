@@ -46,7 +46,7 @@ public partial class DashboardViewModel : ViewModelBase
     partial void OnSelectedSortChanged(string value) => Refresh();
 
     [RelayCommand]
-    private void Refresh()
+    public void Refresh()
     {
         IEnumerable<IModel> models = _registry.Models;
 

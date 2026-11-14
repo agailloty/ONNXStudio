@@ -187,11 +187,13 @@ public partial class OutputItemViewModel : ObservableObject
 /// Inference playground (S-05 / US-003, US-004): dynamic form generated from
 /// the model schema, real inference execution and result display.
 /// </summary>
-public partial class InferencePlaygroundViewModel : ViewModelBase
+public partial class InferencePlaygroundViewModel : ViewModelBase, IDisposable
 {
     private readonly MainWindowViewModel _shell;
     private readonly IInferenceService _inference;
     private readonly IModel _model;
+    private CancellationTokenSource? _runCts;
+    private int _disposed;
 
     [ObservableProperty]
     private ObservableCollection<PlaygroundFieldViewModel> _fields = new();
@@ -281,10 +283,19 @@ public partial class InferencePlaygroundViewModel : ViewModelBase
             inputs[field.Field.InputName] = parsed.Value!;
         }
 
+        if (Volatile.Read(ref _disposed) != 0) return;
+
+        var cts = new CancellationTokenSource();
+        var previous = Interlocked.Exchange(ref _runCts, cts);
+        previous?.Cancel();
+        previous?.Dispose();
+        var token = cts.Token;
+
         IsRunning = true;
         try
         {
-            var result = await Task.Run(() => _inference.RunAsync(_model, inputs));
+            var result = await Task.Run(() => _inference.RunAsync(_model, inputs, token), token);
+            if (Volatile.Read(ref _disposed) != 0 || token.IsCancellationRequested) return;
             if (result.IsFailure)
             {
                 Error = result.Error!.Message;
@@ -297,13 +308,39 @@ public partial class InferencePlaygroundViewModel : ViewModelBase
             HasResult = true;
             _shell.ShowToast($"Inference completed in {ExecutionTimeMs} ms");
         }
+        catch (OperationCanceledException) when (Volatile.Read(ref _disposed) != 0 || token.IsCancellationRequested)
+        {
+        }
         catch (Exception)
         {
-            Error = "Inference could not complete. Check the inputs and try again.";
+            if (Volatile.Read(ref _disposed) == 0)
+            {
+                Error = "Inference could not complete. Check the inputs and try again.";
+            }
         }
         finally
         {
-            IsRunning = false;
+            if (Interlocked.CompareExchange(ref _runCts, null, cts) == cts)
+            {
+                cts.Dispose();
+            }
+
+            if (Volatile.Read(ref _disposed) == 0)
+            {
+                IsRunning = false;
+            }
         }
+    }
+
+    public void Dispose()
+    {
+        if (Interlocked.Exchange(ref _disposed, 1) != 0)
+        {
+            return;
+        }
+
+        var cts = Interlocked.Exchange(ref _runCts, null);
+        cts?.Cancel();
+        cts?.Dispose();
     }
 }

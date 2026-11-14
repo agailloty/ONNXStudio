@@ -36,7 +36,7 @@ public interface IPythonRuntimeService
     Task RemoveManagedAsync(CancellationToken cancellationToken = default);
 }
 
-public sealed class PythonRuntimeService : IPythonRuntimeService
+public sealed class PythonRuntimeService : IPythonRuntimeService, IDisposable
 {
     private readonly PythonPaths _paths;
     private readonly IPythonDiscovery _discovery;
@@ -267,4 +267,6 @@ public sealed class PythonRuntimeService : IPythonRuntimeService
 
     private static StringComparer PathComparer
         => OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
+
+    public void Dispose() => _installGate.Dispose();
 }

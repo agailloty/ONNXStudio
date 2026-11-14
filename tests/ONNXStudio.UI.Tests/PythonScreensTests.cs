@@ -644,4 +644,53 @@ public class PythonScreensTests
             Assert.True(view.Bounds.Width > 0);
         }
     }
+
+    [AvaloniaFact]
+    public async Task UnloadingSklearnModelViaDashboardEvictsPythonRegistryAndCachedScreen()
+    {
+        await using var services = UiTestSetup.Services(configure: s =>
+        {
+            s.AddSingleton<IPythonRuntimeService>(new FakePythonRuntime
+            {
+                Active = FakePythonRuntime.Interpreter(PythonSource.Managed, PythonRequirements.Managed.ToArray())
+            });
+            s.AddSingleton<IPythonModelService>(new FakePythonModelService());
+        });
+        var shell = services.GetRequiredService<MainWindowViewModel>();
+        var pythonRegistry = services.GetRequiredService<IPythonModelRegistry>();
+        var file = TempModel();
+
+        try
+        {
+            shell.OpenPythonModel(file);
+            var import = Assert.IsType<PythonModelViewModel>(shell.CurrentViewModel);
+            import.IsTrusted = true;
+            await import.LoadAsync();
+            Dispatcher.UIThread.RunJobs();
+
+            var loaded = Assert.Single(shell.Models);
+            Assert.Single(pythonRegistry.Models);
+
+            shell.ShowDashboard();
+            var dashboard = Assert.IsType<DashboardViewModel>(shell.CurrentViewModel);
+            dashboard.UnloadModelCommand.Execute(loaded);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Empty(shell.Models);
+            Assert.Empty(pythonRegistry.Models);
+            Assert.DoesNotContain(shell.Tabs, t => t.Key.StartsWith("pymodel:", StringComparison.Ordinal));
+
+            shell.OpenPythonModel(file);
+            var reopened = Assert.IsType<PythonModelViewModel>(shell.CurrentViewModel);
+            Assert.NotSame(import, reopened);
+            Assert.False(reopened.IsLoaded);
+        }
+        finally
+        {
+            if (File.Exists(file))
+            {
+                File.Delete(file);
+            }
+        }
+    }
 }
