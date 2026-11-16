@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
@@ -29,7 +30,7 @@ public partial class HistoryItemViewModel : ObservableObject
 /// API sandbox (US-006 UI): send real HTTP requests to the embedded API
 /// server and inspect the responses.
 /// </summary>
-public partial class ApiSandboxViewModel : ViewModelBase, IDisposable
+public sealed partial class ApiSandboxViewModel : ViewModelBase, IDisposable
 {
     private readonly MainWindowViewModel _shell;
     private readonly ApiServerHost _host;
@@ -171,7 +172,7 @@ public partial class ApiSandboxViewModel : ViewModelBase, IDisposable
         History.Insert(0, new HistoryItemViewModel
         {
             Endpoint = endpoint,
-            TimeDisplay = DateTime.Now.ToString("HH:mm:ss"),
+            TimeDisplay = DateTime.Now.ToString("HH:mm:ss", CultureInfo.InvariantCulture),
             RequestBody = requestBody,
             ResponseBody = ResponseBody,
             StatusCode = StatusCode,

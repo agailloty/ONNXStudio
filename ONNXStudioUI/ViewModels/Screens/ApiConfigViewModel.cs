@@ -12,7 +12,7 @@ namespace ONNXStudioUI.ViewModels.Screens;
 /// and generate the JSON schema / example payload / cURL of its predict
 /// endpoint (matching the payload format accepted by PayloadParser).
 /// </summary>
-public partial class ApiConfigViewModel : ViewModelBase, IDisposable
+public sealed partial class ApiConfigViewModel : ViewModelBase, IDisposable
 {
     private readonly MainWindowViewModel _shell;
     private readonly ApiServerHost _host;

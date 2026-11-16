@@ -46,7 +46,7 @@ public sealed class PythonInterpreterItem
 /// user pick one found on the machine or provide their own, or have ONNX Studio
 /// download and install Python and the required packages in its own folder.
 /// </summary>
-public partial class PythonRuntimeViewModel : ObservableObject, IDisposable
+public sealed partial class PythonRuntimeViewModel : ObservableObject, IDisposable
 {
     private const int MaxLogLines = 300;
 

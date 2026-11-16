@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using Microsoft.Extensions.Logging;
 using Microsoft.ML.OnnxRuntime;
 using ONNXStudio.Core.Models;
@@ -122,7 +123,7 @@ internal sealed class OnnxInferenceBackend : IInferenceBackend
         var result = new T[source.Length];
         for (int i = 0; i < source.Length; i++)
         {
-            result[i] = (T)System.Convert.ChangeType(source.GetValue(i)!, typeof(T));
+            result[i] = (T)System.Convert.ChangeType(source.GetValue(i)!, typeof(T), CultureInfo.InvariantCulture);
         }
         return result;
     }

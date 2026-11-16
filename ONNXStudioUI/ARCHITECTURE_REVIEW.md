@@ -74,3 +74,9 @@ fonctionnalités décrites dans les spécifications.
 
 Les documents sources ont été conservés sans modification ; leurs cases de validation
 n’ont pas été cochées sur la seule base de ces tests.
+
+## Mise à jour — 16 novembre 2026
+
+- **Support Python / scikit-learn** : intégration complète via `IModel`, `StructureNode`, `SklearnModel`, `SklearnInferenceBackend`, `PythonModelView` et `PythonRuntimeView`, avec vérifications de compatibilité et harmonisation des versions scikit-learn dans le worker Python.
+- **Bonnes pratiques .NET** : verrouillage (`sealed`) des ViewModels implémentant `IDisposable` (`CA1816`), formatage et conversions invariants à la culture (`CultureInfo.InvariantCulture`, `CA1305`), indexation directe des collections (`CA1826`) et propagation de `OperationCanceledException` dans `ModelLoader`.
+- **Tests actuels** : **99 tests Core/API réussis** (+ 11 tests d’intégration Python ignorés par défaut sans `ONNXSTUDIO_PYTHON_INTEGRATION=1`) et **57 tests UI headless réussis**, soit **156 tests exécutés et réussis** en configuration Release sans avertissement de compilation.

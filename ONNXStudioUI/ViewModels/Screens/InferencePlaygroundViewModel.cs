@@ -148,7 +148,7 @@ public partial class OutputItemViewModel : ObservableObject
         var values = new List<double>();
         foreach (var v in output.Data)
         {
-            values.Add(System.Convert.ToDouble(v));
+            values.Add(System.Convert.ToDouble(v, CultureInfo.InvariantCulture));
         }
 
         if (output.Shape.Count == 2 && output.Shape[0] == 1 && values.Count > 4 && output.Type is DataType.Float32 or DataType.Float64 or DataType.Float16)
@@ -187,7 +187,7 @@ public partial class OutputItemViewModel : ObservableObject
 /// Inference playground (S-05 / US-003, US-004): dynamic form generated from
 /// the model schema, real inference execution and result display.
 /// </summary>
-public partial class InferencePlaygroundViewModel : ViewModelBase, IDisposable
+public sealed partial class InferencePlaygroundViewModel : ViewModelBase, IDisposable
 {
     private readonly MainWindowViewModel _shell;
     private readonly IInferenceService _inference;

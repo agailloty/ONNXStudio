@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ONNXStudio.Core.Configuration;
@@ -66,7 +67,7 @@ public sealed class ModelLoader : IModelLoader
         {
             bytes = await File.ReadAllBytesAsync(filePath, cancellationToken).ConfigureAwait(false);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogError(ex, "Could not read model file {FilePath}", filePath);
             return Result<OnnxModel, ModelLoadError>.Failure(
@@ -133,7 +134,8 @@ public sealed class ModelLoader : IModelLoader
                     "An unexpected error occurred while loading the model.", ex.Message, ex));
         }
 
-        var model = BuildModel(filePath, fileInfo.Length, raw);        _logger.LogInformation("Loaded ONNX model {ModelName} (opset {Opset}, {Nodes} nodes, {Inputs} inputs, {Outputs} outputs)",
+        var model = BuildModel(filePath, fileInfo.Length, raw);
+        _logger.LogInformation("Loaded ONNX model {ModelName} (opset {Opset}, {Nodes} nodes, {Inputs} inputs, {Outputs} outputs)",
             model.Name, model.OpsetVersion, model.Graph.Nodes.Count, model.Inputs.Count, model.Outputs.Count);
 
         return Result<OnnxModel, ModelLoadError>.Success(model);
@@ -179,7 +181,7 @@ public sealed class ModelLoader : IModelLoader
             producerName: string.IsNullOrEmpty(raw.ProducerName) ? "Unknown" : raw.ProducerName,
             domain: raw.Domain,
             opsetVersion: raw.OpsetVersion,
-            modelVersion: raw.ModelVersion == 0 ? "1" : raw.ModelVersion.ToString(),
+            modelVersion: raw.ModelVersion == 0 ? "1" : raw.ModelVersion.ToString(CultureInfo.InvariantCulture),
             docString: raw.DocString,
             irVersion: raw.IrVersion,
             graph: new ComputationGraph(nodes, edges),

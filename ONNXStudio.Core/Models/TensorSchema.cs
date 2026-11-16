@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace ONNXStudio.Core.Models;
 
 /// <summary>
@@ -28,7 +30,7 @@ public sealed class TensorSchema
     /// </summary>
     public string ToDisplayString()
     {
-        var dims = string.Join(", ", Shape.Select(d => d?.ToString() ?? "?"));
+        var dims = string.Join(", ", Shape.Select(d => d?.ToString(CultureInfo.InvariantCulture) ?? "?"));
         return $"{Type.ToDisplayName()}[{dims}]";
     }
 }

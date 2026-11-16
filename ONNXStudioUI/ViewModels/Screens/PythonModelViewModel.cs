@@ -19,7 +19,7 @@ namespace ONNXStudioUI.ViewModels.Screens;
 /// load it as a <see cref="SklearnModel"/> and hand it over to the same screens as any other model
 /// (inspector, inference, API, sandbox). It also converts the model to an ONNX file.
 /// </summary>
-public partial class PythonModelViewModel : ViewModelBase, IDisposable
+public sealed partial class PythonModelViewModel : ViewModelBase, IDisposable
 {
     private readonly MainWindowViewModel _shell;
     private readonly IPythonModelService _service;

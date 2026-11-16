@@ -261,7 +261,7 @@ public sealed record PythonConversionRequest(
 
 public sealed record PythonOnnxTensor(string Name, int ElementType, IReadOnlyList<long?> Shape)
 {
-    public string Display => $"{Name} [{string.Join(", ", Shape.Select(d => d?.ToString() ?? "?"))}]";
+    public string Display => $"{Name} [{string.Join(", ", Shape.Select(d => d?.ToString(CultureInfo.InvariantCulture) ?? "?"))}]";
 }
 
 public sealed record PythonConversionValidation(bool Performed, bool? Passed, string Detail);

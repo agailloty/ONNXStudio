@@ -16,7 +16,7 @@ namespace ONNXStudioUI.ViewModels;
 /// Shell view model: navigation between screens, model registry projection,
 /// status bar, toasts and theme. Screen view models are created through DI.
 /// </summary>
-public partial class MainWindowViewModel : ObservableObject, IDisposable
+public sealed partial class MainWindowViewModel : ObservableObject, IDisposable
 {
     private readonly IServiceProvider _services;
     private readonly IModelRegistry _registry;

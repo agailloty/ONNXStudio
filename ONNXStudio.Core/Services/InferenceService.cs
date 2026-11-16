@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.Extensions.Logging;
 using ONNXStudio.Core.Models;
 
@@ -113,7 +114,7 @@ public sealed class InferenceService : IInferenceService, IDisposable
                 if (value.Shape[i] <= 0 || (expected.HasValue && expected.Value != value.Shape[i]))
                 {
                     return new InferenceError(InferenceErrorCode.ShapeMismatch,
-                        $"The input '{schema.Name}' expects dimension {i} = {expected?.ToString() ?? "a positive size"} but received {value.Shape[i]}.",
+                        $"The input '{schema.Name}' expects dimension {i} = {expected?.ToString(CultureInfo.InvariantCulture) ?? "a positive size"} but received {value.Shape[i]}.",
                         $"Expected {schema.ToDisplayString()}, got shape [{string.Join(", ", value.Shape)}]");
                 }
             }

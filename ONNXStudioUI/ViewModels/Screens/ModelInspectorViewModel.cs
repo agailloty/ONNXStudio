@@ -1,5 +1,6 @@
 using System;
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -140,7 +141,7 @@ public partial class ModelInspectorViewModel : ViewModelBase
     [RelayCommand]
     private void ShowStructureView()
     {
-        SelectedComponent ??= Components.FirstOrDefault();
+        SelectedComponent ??= Components.Count > 0 ? Components[0] : null;
         ShowStructure = true;
     }
 
@@ -164,6 +165,7 @@ public partial class ModelInspectorViewModel : ViewModelBase
 
         var deps = _dependencyCounts[node.Node.Id];
         DependencySummary = string.Format(
+            CultureInfo.InvariantCulture,
             "depends on {0} node(s) - used by {1} node(s)",
             deps.Inputs, deps.Outputs);
     }

@@ -22,25 +22,31 @@ serve **ONNX models** — built as a modular monolith on **Avalonia**,
 ```
 ONNXStudio.slnx
 ├── ONNXStudio.Core/            # Domain + services (no UI, no HTTP)
-│   ├── Models/                 # OnnxModel, graph, tensors, errors, Result<T,E>
+│   ├── Models/                 # IModel, OnnxModel, graph, tensors, errors, Result<T,E>
 │   ├── Services/               # ModelLoader, ModelRegistry, InferenceService,
-│   │                           # InferenceSessionManager (LRU), FormGeneration,
-│   │                           # GraphAnalysis
+│   │                           # OnnxInferenceBackend, InferenceSessionManager (LRU),
+│   │                           # FormGeneration, GraphAnalysis
 │   ├── Python/                 # Python runtime discovery / installation, worker
-│   │                           # script (joblib / pickle inference, skl2onnx)
+│   │                           # script (joblib / pickle inference, skl2onnx),
+│   │                           # SklearnModel, SklearnInferenceBackend
 │   └── Utilities/              # OnnxProtoParser (dependency-free protobuf)
 ├── ONNXStudio.Api/             # ASP.NET Core Minimal APIs (library)
-│   ├── Endpoints/              # /health, /models..., /predict
+│   ├── Endpoints/              # /health, /models..., /predict, /openapi.json
 │   ├── Payloads/               # JSON payload parsing -> validated tensors
 │   └── ApiServerHost.cs        # Embedded Kestrel lifecycle
-├── ONNXStudioUI/               # Avalonia executable (UI module, hosts the API)
-└── tests/ONNXStudio.Core.Tests # unit + integration tests (real .onnx fixtures)
+├── ONNXStudioUI/               # Avalonia 12 executable (UI module, hosts the API)
+├── packaging/                  # Windows (NSIS), Linux (.deb/.tar.gz), macOS (.dmg/.app)
+└── tests/
+    ├── ONNXStudio.Core.Tests/  # Core & API unit + integration tests (real .onnx fixtures)
+    └── ONNXStudio.UI.Tests/    # Headless Avalonia UI & end-to-end workflow tests
 ```
 
 Communication between modules is direct .NET method calls through interfaces,
 wired by `Microsoft.Extensions.DependencyInjection` (single process, no IPC).
 
 ## Build and run
+
+Requires a **.NET 10** SDK (`global.json` selects `10.0.100` with `latestFeature` roll-forward).
 
 ```bash
 dotnet build ONNXStudio.slnx
@@ -65,7 +71,9 @@ With the automatic choice the managed runtime is used when installed, otherwise 
 first system interpreter that has scikit-learn, numpy and joblib. Inference needs
 `numpy`, `scikit-learn` and `joblib`; conversion also needs `skl2onnx` and `onnx`
 (`onnxruntime` enables the post-conversion check). Models that need other packages
-(xgboost, lightgbm...) work as long as the selected interpreter has them.
+(xgboost, lightgbm...) work as long as the selected interpreter has them. The worker
+also performs scikit-learn version compatibility checks and attribute harmonization
+when loading models saved with older or newer scikit-learn releases.
 
 **Security:** unpickling executes code contained in the file. Nothing runs until you
 tick *I trust this file* on the model screen; only open files you created or trust.
@@ -98,7 +106,14 @@ and platform details.
 ## Tests
 
 ```bash
+dotnet test ONNXStudio.slnx
+```
+
+Or run each suite individually:
+
+```bash
 dotnet test tests/ONNXStudio.Core.Tests
+dotnet test tests/ONNXStudio.UI.Tests
 ```
 
 The Python integration tests (real download and installation of Python, scikit-learn
@@ -108,8 +123,9 @@ is set; set `ONNXSTUDIO_TEST_PYTHON_DIR` to reuse an installation between runs.
 The suite covers model loading (valid/invalid files, opset rejection), graph
 extraction (attributes, dynamic shapes, tensor-flow edges), real inference on
 generated ONNX fixtures (add, linear regression, convnet, dynamic batch),
-session LRU eviction, form generation, and full-stack API integration tests
-(real Kestrel + real inference over HTTP).
+session LRU eviction, form generation, full-stack API integration tests
+(real Kestrel + real inference over HTTP), and headless Avalonia UI workflow tests
+(navigation, graph interaction, inspector, settings persistence, Python screens).
 
 ## API example
 
