@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace ONNXStudio.Core.Python;
@@ -159,7 +160,7 @@ public sealed class ProcessRunner : IProcessRunner, IDisposable
                 process.WaitForExit(500);
             }
         }
-        catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception or ObjectDisposedException)
+        catch (Exception ex) when (ex is InvalidOperationException or ExternalException or ObjectDisposedException or AggregateException)
         {
         }
     }
