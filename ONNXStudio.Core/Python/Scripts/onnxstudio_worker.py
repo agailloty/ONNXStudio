@@ -5,6 +5,7 @@
 # The response file always contains {"ok": true, "result": ...} or
 # {"ok": false, "error": {"code", "message", "trace"}}. Nothing is read from stdin.
 
+import inspect
 import json
 import math
 import os
@@ -93,18 +94,154 @@ def load_model(path, collected_warnings):
                 model = loader(path)
                 for item in caught:
                     collected_warnings.append("{}: {}".format(item.category.__name__, item.message))
-                return model
+                return _harmonize_loaded_model(model, collected_warnings)
             except ModuleNotFoundError as error:
                 # The model needs a package that is not installed in this interpreter.
                 raise WorkerError("missing_module", "The model needs the Python package '{}', which is not installed in the selected runtime.".format(error.name))
             except Exception as error:  # noqa: BLE001
                 last_error = error
+    if last_error is not None and _is_cython_binary_mismatch(last_error):
+        raise WorkerError(
+            "load_failed",
+            "Incompatibilite binaire Cython entre la version scikit-learn d'entrainement et ce runtime ({}: {}).".format(
+                type(last_error).__name__, last_error
+            ),
+        )
     raise WorkerError("load_failed", "The file could not be loaded as a joblib or pickle model: {}: {}".format(type(last_error).__name__, last_error))
 
 
 def _pickle_load(pickle, path):
     with open(path, "rb") as handle:
         return pickle.load(handle)
+
+
+def _iter_all_estimators(model, seen=None):
+    """Yield every nested estimator/transformer inside pipelines, ensembles, and meta-estimators."""
+    if seen is None:
+        seen = set()
+    if model is None or isinstance(model, (str, bytes, int, float, bool)):
+        return
+    obj_id = id(model)
+    if obj_id in seen:
+        return
+    seen.add(obj_id)
+    yield model
+
+    for _, step in steps_of(model):
+        yield from _iter_all_estimators(step, seen)
+
+    for attr_name in ("transformers_", "transformers", "transformer_list"):
+        items = getattr(model, attr_name, None)
+        if isinstance(items, (list, tuple)):
+            for item in items:
+                if isinstance(item, (list, tuple)) and len(item) > 1:
+                    yield from _iter_all_estimators(item[1], seen)
+
+    for attr_name in ("estimators_", "estimators"):
+        items = getattr(model, attr_name, None)
+        if isinstance(items, (list, tuple)):
+            for item in items:
+                est = item[1] if isinstance(item, (list, tuple)) and len(item) > 1 else item
+                yield from _iter_all_estimators(est, seen)
+
+    for attr_name in CHILD_ATTRIBUTES:
+        child = getattr(model, attr_name, None)
+        if child is not None:
+            yield from _iter_all_estimators(child, seen)
+
+    calibrated = getattr(model, "calibrated_classifiers_", None)
+    if isinstance(calibrated, (list, tuple)):
+        for cal in calibrated:
+            for sub_attr in ("estimator", "base_estimator"):
+                sub = getattr(cal, sub_attr, None)
+                if sub is not None:
+                    yield from _iter_all_estimators(sub, seen)
+
+
+def _harmonize_loaded_model(model, collected_warnings):
+    """Best-effort compatibility patching for cross-version scikit-learn models."""
+    patched = []
+
+    for est in _iter_all_estimators(model):
+        cls = type(est)
+        cls_name = cls.__name__
+        if not hasattr(est, "__dict__"):
+            continue
+
+        try:
+            sig = inspect.signature(cls.__init__)
+            for param_name, param in sig.parameters.items():
+                if param_name == "self":
+                    continue
+                if param.kind in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD):
+                    continue
+                if param.default is inspect.Parameter.empty:
+                    continue
+                if not hasattr(est, param_name):
+                    try:
+                        setattr(est, param_name, param.default)
+                        patched.append("{}.{}".format(cls_name, param_name))
+                    except Exception:  # noqa: BLE001
+                        pass
+        except (ValueError, TypeError):
+            pass
+
+        if cls_name == "LogisticRegression" and not hasattr(est, "multi_class"):
+            try:
+                est.multi_class = "auto"
+                patched.append("LogisticRegression.multi_class='auto'")
+            except Exception:  # noqa: BLE001
+                pass
+
+        if cls_name == "OneHotEncoder":
+            if hasattr(est, "sparse_output") and not hasattr(est, "sparse"):
+                try:
+                    est.sparse = est.sparse_output
+                    patched.append("OneHotEncoder.sparse")
+                except Exception:  # noqa: BLE001
+                    pass
+            elif hasattr(est, "sparse") and not hasattr(est, "sparse_output"):
+                try:
+                    est.sparse_output = est.sparse
+                    patched.append("OneHotEncoder.sparse_output")
+                except Exception:  # noqa: BLE001
+                    pass
+
+        if cls_name == "SimpleImputer" and not hasattr(est, "_fill_dtype"):
+            stats = getattr(est, "statistics_", None)
+            if stats is not None and hasattr(stats, "dtype"):
+                try:
+                    est._fill_dtype = stats.dtype
+                    patched.append("SimpleImputer._fill_dtype")
+                except Exception:  # noqa: BLE001
+                    pass
+
+        if any(
+            k in cls_name
+            for k in ("Tree", "Forest", "GradientBoosting", "ExtraTrees", "HistGradientBoosting")
+        ) and not hasattr(est, "monotonic_cst"):
+            try:
+                est.monotonic_cst = None
+                patched.append("{}.monotonic_cst=None".format(cls_name))
+            except Exception:  # noqa: BLE001
+                pass
+
+    if patched:
+        unique_patched = list(dict.fromkeys(patched))
+        preview = ", ".join(unique_patched[:8])
+        suffix = " (+{} autres)".format(len(unique_patched) - 8) if len(unique_patched) > 8 else ""
+        collected_warnings.append("Compatibilite auto : attribut(s) complete(s) : {}{}".format(preview, suffix))
+
+    return model
+
+
+def _is_cython_binary_mismatch(error):
+    msg = str(error).lower()
+    return (
+        "incompatible dtype" in msg
+        or "node array from the pickle" in msg
+        or "buffer dtype mismatch" in msg
+    )
 
 
 # --------------------------------------------------------------- introspection
