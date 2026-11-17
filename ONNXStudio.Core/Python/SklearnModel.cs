@@ -89,7 +89,7 @@ public sealed class SklearnModel : IModel
 
         if (info.FeatureNames is { Count: > 0 } names && Descendants(info.Components).Any(c => c.Kind == "ColumnTransformer"))
         {
-            var columns = names.Select(name => new TensorSchema(name, IsCategorical(info.Components, name) ? DataType.String : DataType.Float64, [null, 1])).ToArray();
+            var columns = names.Select((name, index) => new TensorSchema(name, ColumnType(info, index, name), [null, 1])).ToArray();
             return (SklearnInputLayout.Columns, columns);
         }
 
@@ -124,6 +124,20 @@ public sealed class SklearnModel : IModel
         yield return root;
         foreach (var child in root.Children)
             foreach (var descendant in Descendants(child)) yield return descendant;
+    }
+
+    private static DataType ColumnType(PythonModelInfo info, int index, string column)
+    {
+        if (info.FeatureTypes is { } types && index < types.Count)
+        {
+            return types[index] switch
+            {
+                "string" => DataType.String,
+                "int64" => DataType.Int64,
+                _ => DataType.Float64
+            };
+        }
+        return IsCategorical(info.Components, column) ? DataType.String : DataType.Float64;
     }
 
     // A column is categorical when a transformer that encodes categories is applied to it.

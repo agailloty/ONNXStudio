@@ -16,6 +16,9 @@ public interface IPythonModelService
     Task<Result<PythonPredictionResult, PythonError>> PredictAsync(PythonPredictionRequest request, CancellationToken cancellationToken = default);
 
     Task<Result<PythonConversionResult, PythonError>> ConvertAsync(PythonConversionRequest request, CancellationToken cancellationToken = default);
+
+    /// <summary>Starts the persistent Python worker in the background so loading/inference are fast.</summary>
+    Task WarmupAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
 }
 
 public sealed class PythonModelService : IPythonModelService
@@ -27,6 +30,15 @@ public sealed class PythonModelService : IPythonModelService
     {
         _runtime = runtime;
         _worker = worker;
+    }
+
+    public async Task WarmupAsync(CancellationToken cancellationToken = default)
+    {
+        var interpreter = await _runtime.GetActiveAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+        if (interpreter is { CanRunInference: true })
+        {
+            await _worker.WarmupAsync(interpreter, cancellationToken).ConfigureAwait(false);
+        }
     }
 
     public async Task<Result<PythonModelInfo, PythonError>> InspectAsync(string modelPath, bool trustConfirmed, CancellationToken cancellationToken = default)

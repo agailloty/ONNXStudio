@@ -9,7 +9,7 @@ namespace ONNXStudio.Core.Utilities;
 /// </summary>
 public ref struct ProtoReader
 {
-    private readonly ReadOnlySpan<byte> _buffer;
+    private ReadOnlySpan<byte> _buffer;
 
     public ProtoReader(ReadOnlySpan<byte> buffer)
     {
@@ -27,6 +27,13 @@ public ref struct ProtoReader
 
     public ulong ReadVarInt()
     {
+        if (!_buffer.IsEmpty && (_buffer[0] & 0x80) == 0)
+        {
+            byte fast = _buffer[0];
+            _buffer = _buffer[1..];
+            return fast;
+        }
+
         ulong value = 0;
         int shift = 0;
         int index = 0;
@@ -37,8 +44,7 @@ public ref struct ProtoReader
             index++;
             if ((b & 0x80) == 0)
             {
-                // Consume the bytes we read
-                this = new ProtoReader(_buffer[index..]);
+                _buffer = _buffer[index..];
                 return value;
             }
             shift += 7;
@@ -59,7 +65,7 @@ public ref struct ProtoReader
             throw new InvalidDataException("Protobuf length out of bounds.");
         }
         var payload = _buffer[..(int)length];
-        this = new ProtoReader(_buffer[(int)length..]);
+        _buffer = _buffer[(int)length..];
         return payload;
     }
 
@@ -73,7 +79,7 @@ public ref struct ProtoReader
             throw new InvalidDataException("Truncated fixed32.");
         }
         var value = BitConverter.ToUInt32(_buffer[..4]);
-        this = new ProtoReader(_buffer[4..]);
+        _buffer = _buffer[4..];
         return value;
     }
 
@@ -85,7 +91,7 @@ public ref struct ProtoReader
             throw new InvalidDataException("Truncated fixed64.");
         }
         var value = BitConverter.ToUInt64(_buffer[..8]);
-        this = new ProtoReader(_buffer[8..]);
+        _buffer = _buffer[8..];
         return value;
     }
 
@@ -120,9 +126,9 @@ public ref struct ProtoReader
         switch (wireType)
         {
             case 0: ReadVarInt(); break;
-            case 1: this = new ProtoReader(_buffer[8..]); break;
+            case 1: _buffer = _buffer[8..]; break;
             case 2: ReadLengthDelimited(); break;
-            case 5: this = new ProtoReader(_buffer[4..]); break;
+            case 5: _buffer = _buffer[4..]; break;
             default: throw new InvalidDataException($"Unsupported protobuf wire type {wireType}.");
         }
     }

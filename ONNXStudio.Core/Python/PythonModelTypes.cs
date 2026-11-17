@@ -19,6 +19,7 @@ public sealed class PythonModelInfo
 
     public int? FeatureCount { get; init; }
     public IReadOnlyList<string>? FeatureNames { get; init; }
+    public IReadOnlyList<string>? FeatureTypes { get; init; }
     public IReadOnlyList<string>? Classes { get; init; }
 
     /// <summary>Inference methods the model exposes (predict, predict_proba, ...).</summary>
@@ -62,6 +63,7 @@ public sealed class PythonModelInfo
         IsTextModel = json["isTextModel"]?.GetValue<bool>() ?? false,
         FeatureCount = json["nFeaturesIn"]?.GetValue<int>(),
         FeatureNames = Strings(json["featureNamesIn"]),
+        FeatureTypes = Strings(json["featureTypesIn"]),
         Classes = Strings(json["classes"]),
         Methods = Strings(json["methods"]) ?? Array.Empty<string>(),
         Parameters = (json["parameters"] as JsonObject)?

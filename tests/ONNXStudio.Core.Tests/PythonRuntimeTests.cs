@@ -326,17 +326,28 @@ public class PythonRuntimeServiceTests
     private sealed class FakeProbe : IPythonProbe
     {
         public Dictionary<string, PythonInterpreter?> Known { get; } = new(StringComparer.OrdinalIgnoreCase);
+        public int ProbeCount;
+        public Func<Task>? OnProbe { get; set; }
 
-        public Task<PythonInterpreter?> ProbeAsync(string executablePath, PythonSource source, CancellationToken cancellationToken = default)
-            => Task.FromResult(Known.TryGetValue(executablePath, out var i) && i != null
+        public async Task<PythonInterpreter?> ProbeAsync(string executablePath, PythonSource source, CancellationToken cancellationToken = default)
+        {
+            Interlocked.Increment(ref ProbeCount);
+            if (OnProbe != null) await OnProbe();
+            return Known.TryGetValue(executablePath, out var i) && i != null
                 ? new PythonInterpreter(i.ExecutablePath, i.Version, i.Architecture, source, i.Packages)
-                : null);
+                : null;
+        }
     }
 
     private sealed class FakeDiscovery : IPythonDiscovery
     {
         public List<string> Candidates { get; } = new();
-        public Task<IReadOnlyList<string>> FindCandidatesAsync(CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<string>>(Candidates);
+        public int DiscoveryCount;
+        public Task<IReadOnlyList<string>> FindCandidatesAsync(CancellationToken cancellationToken = default)
+        {
+            Interlocked.Increment(ref DiscoveryCount);
+            return Task.FromResult<IReadOnlyList<string>>(Candidates);
+        }
         public string? ResolveExecutable(string pathOrFolder) => File.Exists(pathOrFolder) ? pathOrFolder : null;
     }
 
@@ -517,6 +528,27 @@ public class PythonRuntimeServiceTests
 
         Assert.True(installer.Removed);
         Assert.True(service.Selection.IsAutomatic);
+    }
+
+    [Fact]
+    public async Task AutomaticSelectionSkipsSystemDiscoveryWhenManagedIsPresentAndCoalescesConcurrentProbes()
+    {
+        using var temp = new TempDirectory();
+        var (service, probe, discovery, _, paths) = Create(temp);
+        Touch(Path.GetDirectoryName(paths.ManagedExecutable)!, Path.GetFileName(paths.ManagedExecutable));
+        probe.Known[paths.ManagedExecutable] = Interpreter(paths.ManagedExecutable, AllPackages);
+        var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        probe.OnProbe = () => gate.Task;
+
+        var first = service.GetActiveAsync();
+        var second = service.GetActiveAsync();
+        gate.SetResult();
+        var results = await Task.WhenAll(first, second);
+
+        Assert.Equal(PythonSource.Managed, results[0]!.Source);
+        Assert.Same(results[0], results[1]);
+        Assert.Equal(1, probe.ProbeCount);
+        Assert.Equal(0, discovery.DiscoveryCount);
     }
 }
 
@@ -764,5 +796,45 @@ public class ProcessRunnerTests
         Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(5));
         await Assert.ThrowsAsync<ObjectDisposedException>(
             () => runner.RunAsync(new ProcessSpec(file, args)));
+    }
+}
+
+public class PythonWorkerClientTests
+{
+    [Fact]
+    public async Task SingleShotModeWritesScriptRequestsResultAndMapsErrors()
+    {
+        using var temp = new TempDirectory();
+        var paths = new PythonPaths(Path.Combine(temp.Path, "py"));
+        var interpreter = new PythonInterpreter("python", "3.12.4", "AMD64", PythonSource.System,
+            new Dictionary<string, string?>());
+
+        var runner = new FakeProcessRunner(spec =>
+        {
+            var responsePath = spec.Arguments[3];
+            File.WriteAllText(responsePath, """{"ok":true,"result":{"value":42}}""");
+            return new ProcessResult(0, "", "", false);
+        });
+
+        using var client = new PythonWorkerClient(paths, runner, new OnnxStudioPythonOptions(), NullLogger<PythonWorkerClient>.Instance);
+        var ok = await client.RunAsync(interpreter, "inspect", new JsonObject { ["modelPath"] = "m.joblib" });
+
+        Assert.True(ok.IsSuccess);
+        Assert.Equal(42, ok.Value!["value"]!.GetValue<int>());
+        Assert.True(File.Exists(Path.Combine(paths.WorkerDirectory, "onnxstudio_worker.py")));
+        var call = Assert.Single(runner.Calls);
+        Assert.Equal("inspect", call.Arguments[1]);
+
+        var errorRunner = new FakeProcessRunner(spec =>
+        {
+            File.WriteAllText(spec.Arguments[3], """{"ok":false,"error":{"code":"convert_failed","message":"boom","trace":"tb"}}""");
+            return new ProcessResult(0, "", "", false);
+        });
+        using var errorClient = new PythonWorkerClient(paths, errorRunner, new OnnxStudioPythonOptions(), NullLogger<PythonWorkerClient>.Instance);
+        var failed = await errorClient.RunAsync(interpreter, "convert", new JsonObject());
+
+        Assert.True(failed.IsFailure);
+        Assert.Equal(PythonErrorCode.ConversionFailed, failed.Error!.Code);
+        Assert.Equal("boom", failed.Error.Message);
     }
 }

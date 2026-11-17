@@ -86,6 +86,22 @@ public class SklearnModelTests
         Assert.Null(service.Request);
     }
 
+    [Fact]
+    public void FeatureTypesFromInspectionDriveColumnInputTypes()
+    {
+        var model = Model(new PythonModelInfo
+        {
+            FeatureNames = ["amount", "count", "city"],
+            FeatureTypes = ["float", "int64", "string"],
+            Components = new() { Name = "features", ClassName = "ColumnTransformer", Kind = "ColumnTransformer" }
+        });
+
+        Assert.Equal(SklearnInputLayout.Columns, model.InputLayout);
+        Assert.Equal(DataType.Float64, model.Inputs[0].Type);
+        Assert.Equal(DataType.Int64, model.Inputs[1].Type);
+        Assert.Equal(DataType.String, model.Inputs[2].Type);
+    }
+
     private sealed class PredictionService : IPythonModelService
     {
         public PythonPredictionRequest? Request { get; private set; }

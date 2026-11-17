@@ -165,6 +165,10 @@ public sealed partial class PythonModelViewModel : ViewModelBase, IDisposable
             if (Volatile.Read(ref _disposed) != 0 || token.IsCancellationRequested) return;
             RuntimeReady = active is { CanRunInference: true };
             RuntimeStatus = PythonRuntimeViewModel.Describe(active);
+            if (RuntimeReady)
+            {
+                _ = WarmupSilentlyAsync();
+            }
         }
         catch (OperationCanceledException)
         {
@@ -175,6 +179,20 @@ public sealed partial class PythonModelViewModel : ViewModelBase, IDisposable
             {
                 cts.Dispose();
             }
+        }
+    }
+
+    private async Task WarmupSilentlyAsync()
+    {
+        try
+        {
+            await _service.WarmupAsync(CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception)
+        {
         }
     }
 

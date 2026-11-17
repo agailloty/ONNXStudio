@@ -48,6 +48,8 @@ public sealed class PythonRuntimeService : IPythonRuntimeService, IDisposable
     private PythonSelection _selection;
     private PythonInterpreter? _active;
     private bool _activeResolved;
+    private Task<PythonInterpreter?>? _activeTask;
+    private CancellationTokenSource? _resolveCts;
 
     public event Action? Changed;
 
@@ -75,12 +77,17 @@ public sealed class PythonRuntimeService : IPythonRuntimeService, IDisposable
 
     public void Select(PythonSelection selection)
     {
+        CancellationTokenSource? previousCts;
         lock (_selectionLock)
         {
             _selection = selection;
             _active = null;
             _activeResolved = false;
+            _activeTask = null;
+            previousCts = _resolveCts;
+            _resolveCts = null;
         }
+        previousCts?.Cancel();
         SaveSelection(selection);
         Changed?.Invoke();
     }
@@ -124,25 +131,66 @@ public sealed class PythonRuntimeService : IPythonRuntimeService, IDisposable
 
     public async Task<PythonInterpreter?> GetActiveAsync(bool refresh = false, CancellationToken cancellationToken = default)
     {
-        PythonSelection selection;
+        cancellationToken.ThrowIfCancellationRequested();
+
+        Task<PythonInterpreter?> task;
         lock (_selectionLock)
         {
             if (_activeResolved && !refresh) return _active;
-            selection = _selection;
-        }
-
-        var resolved = await ResolveAsync(selection, cancellationToken).ConfigureAwait(false);
-
-        lock (_selectionLock)
-        {
-            // Ignore the result if the selection changed while probing.
-            if (ReferenceEquals(selection, _selection))
+            if (refresh || _activeTask == null)
             {
-                _active = resolved;
-                _activeResolved = true;
+                var selection = _selection;
+                var previousCts = _resolveCts;
+                var cts = new CancellationTokenSource();
+                _resolveCts = cts;
+                previousCts?.Cancel();
+                _activeTask = ResolveAndCacheAsync(selection, cts);
             }
+            task = _activeTask;
         }
-        return resolved;
+
+        return await task.WaitAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<PythonInterpreter?> ResolveAndCacheAsync(PythonSelection selection, CancellationTokenSource cts)
+    {
+        try
+        {
+            var resolved = await ResolveAsync(selection, cts.Token).ConfigureAwait(false);
+            lock (_selectionLock)
+            {
+                // Ignore the result if the selection changed or a newer refresh started while probing.
+                if (ReferenceEquals(selection, _selection) && ReferenceEquals(_resolveCts, cts))
+                {
+                    _active = resolved;
+                    _activeResolved = true;
+                    _activeTask = null;
+                }
+            }
+            return resolved;
+        }
+        catch
+        {
+            lock (_selectionLock)
+            {
+                if (ReferenceEquals(_resolveCts, cts))
+                {
+                    _activeTask = null;
+                }
+            }
+            throw;
+        }
+        finally
+        {
+            lock (_selectionLock)
+            {
+                if (ReferenceEquals(_resolveCts, cts))
+                {
+                    _resolveCts = null;
+                }
+            }
+            cts.Dispose();
+        }
     }
 
     private async Task<PythonInterpreter?> ResolveAsync(PythonSelection selection, CancellationToken cancellationToken)
@@ -152,6 +200,12 @@ public sealed class PythonRuntimeService : IPythonRuntimeService, IDisposable
             var path = selection.InterpreterPath!;
             var source = PathComparer.Equals(Path.GetFullPath(path), _paths.ManagedExecutable) ? PythonSource.Managed : selection.Source;
             return await _probe.ProbeAsync(path, source, cancellationToken).ConfigureAwait(false);
+        }
+
+        if (IsManagedInstalled &&
+            await _probe.ProbeAsync(_paths.ManagedExecutable, PythonSource.Managed, cancellationToken).ConfigureAwait(false) is { } managed)
+        {
+            return managed;
         }
 
         var all = await DiscoverAsync(cancellationToken).ConfigureAwait(false);
@@ -268,5 +322,16 @@ public sealed class PythonRuntimeService : IPythonRuntimeService, IDisposable
     private static StringComparer PathComparer
         => OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
 
-    public void Dispose() => _installGate.Dispose();
+    public void Dispose()
+    {
+        CancellationTokenSource? resolveCts;
+        lock (_selectionLock)
+        {
+            resolveCts = _resolveCts;
+            _resolveCts = null;
+            _activeTask = null;
+        }
+        resolveCts?.Cancel();
+        _installGate.Dispose();
+    }
 }

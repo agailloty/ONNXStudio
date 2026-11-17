@@ -26,6 +26,7 @@ public sealed class IntegrationFactAttribute : FactAttribute
 public sealed class PythonIntegrationFixture : IAsyncLifetime
 {
     private bool _ownsDirectory;
+    private IDisposable? _cleanup;
 
     public string Directory { get; private set; } = string.Empty;
     public string ModelsDirectory => Path.Combine(Directory, "models");
@@ -42,9 +43,10 @@ public sealed class PythonIntegrationFixture : IAsyncLifetime
         Directory = configured ?? Path.Combine(Path.GetTempPath(), "onnxstudio-py-" + Guid.NewGuid().ToString("N"));
 
         var options = new OnnxStudioOptions { Python = new OnnxStudioPythonOptions { Directory = Path.Combine(Directory, "python") } };
-        var services = PythonTestServices.Create(options);
+        var services = PythonTestServices.CreateWithCleanup(options);
         Runtime = services.Runtime;
         Models = services.Models;
+        _cleanup = services.Cleanup;
 
         var active = await Runtime.GetActiveAsync();
         if (active is not { Source: PythonSource.Managed } || active.MissingManaged.Count > 0)
@@ -68,6 +70,7 @@ public sealed class PythonIntegrationFixture : IAsyncLifetime
 
     public Task DisposeAsync()
     {
+        _cleanup?.Dispose();
         if (_ownsDirectory && Directory.Length > 0)
         {
             try { System.IO.Directory.Delete(Directory, recursive: true); } catch (IOException) { }
@@ -94,6 +97,25 @@ public sealed class PythonIntegrationFixture : IAsyncLifetime
         texts = ["good great fine", "bad awful poor", "great excellent", "terrible bad", "fine good"]
         labels = [1, 0, 1, 0, 1]
         joblib.dump(Pipeline([("tfidf", TfidfVectorizer()), ("clf", LogisticRegression())]).fit(texts, labels), os.path.join(out, "text.joblib"))
+        from sklearn.compose import ColumnTransformer
+        from sklearn.impute import SimpleImputer
+        from sklearn.preprocessing import OneHotEncoder
+        from sklearn.ensemble import HistGradientBoostingClassifier
+        mixed_df = pd.DataFrame({
+            "age": [25.0, 40.0, float("nan"), 60.0, 30.0, 50.0, 22.0, 45.0] * 4,
+            "vma": [50.0, 80.0, 90.0, float("nan"), 30.0, 70.0, 50.0, 110.0] * 4,
+            "atmo": ["Normale", "Pluie", "Normale", None, "Brouillard", "Normale", "Pluie", "Normale"] * 4,
+            "dep": ["75", "69", "75", "13", "75", "33", "75", "69"] * 4,
+        })
+        mixed_y = [0, 1, 0, 1, 0, 1, 0, 1] * 4
+        mixed_pipe = Pipeline([
+            ("prep", ColumnTransformer([
+                ("num", Pipeline([("imp", SimpleImputer(strategy="median")), ("sc", StandardScaler())]), ["age", "vma"]),
+                ("cat", Pipeline([("imp", SimpleImputer(strategy="most_frequent")), ("ohe", OneHotEncoder(handle_unknown="ignore", sparse_output=False))]), ["atmo", "dep"]),
+            ])),
+            ("clf", HistGradientBoostingClassifier(max_iter=10, min_samples_leaf=2, random_state=0)),
+        ]).fit(mixed_df, mixed_y)
+        joblib.dump(mixed_pipe, os.path.join(out, "mixed_ct.joblib"))
         with open(os.path.join(out, "missing.pkl"), "wb") as f:
             f.write(b"cnonexistent_module_xyz\nFoo\n.")
         with open(os.path.join(out, "garbage.pkl"), "wb") as f:
@@ -105,6 +127,12 @@ public static class PythonTestServices
 {
     public static (IPythonRuntimeService Runtime, IPythonModelService Models) Create(OnnxStudioOptions options)
     {
+        var (runtime, models, _) = CreateWithCleanup(options);
+        return (runtime, models);
+    }
+
+    internal static (IPythonRuntimeService Runtime, IPythonModelService Models, IDisposable Cleanup) CreateWithCleanup(OnnxStudioOptions options)
+    {
         var paths = PythonPaths.From(options);
         var runner = new ProcessRunner();
         var downloader = new PythonDownloader();
@@ -113,7 +141,16 @@ public static class PythonTestServices
             NullLogger<PythonRuntimeInstaller>.Instance);
         var runtime = new PythonRuntimeService(paths, new PythonDiscovery(runner), probe, installer, NullLogger<PythonRuntimeService>.Instance);
         var worker = new PythonWorkerClient(paths, runner, options.Python, NullLogger<PythonWorkerClient>.Instance);
-        return (runtime, new PythonModelService(runtime, worker));
+        var cleanup = new CompositeDisposable(worker, runtime, runner, downloader);
+        return (runtime, new PythonModelService(runtime, worker), cleanup);
+    }
+
+    private sealed class CompositeDisposable(params IDisposable[] items) : IDisposable
+    {
+        public void Dispose()
+        {
+            foreach (var item in items) item.Dispose();
+        }
     }
 }
 
@@ -260,5 +297,42 @@ public class PythonIntegrationTests : IClassFixture<PythonIntegrationFixture>
         var converted = await _fx.Models.ConvertAsync(new PythonConversionRequest(Model("rf.joblib"), output, true, TargetOpset: 13));
         Assert.True(converted.IsSuccess, converted.Error?.TechnicalDetails);
         Assert.Equal(13, converted.Value!.TargetOpset);
+    }
+
+    [IntegrationFact]
+    public async Task MixedColumnTransformerSupportsInspectPredictAndOnnxExport()
+    {
+        var infoResult = await _fx.Models.InspectAsync(Model("mixed_ct.joblib"), true);
+        Assert.True(infoResult.IsSuccess, infoResult.Error?.TechnicalDetails);
+        var info = infoResult.Value!;
+        Assert.Equal(new[] { "age", "vma", "atmo", "dep" }, info.FeatureNames);
+        Assert.Equal(new[] { "float", "float", "string", "string" }, info.FeatureTypes);
+
+        var predictResult = await _fx.Models.PredictAsync(new PythonPredictionRequest(
+            Model("mixed_ct.joblib"), true, "all", new[] { "age", "vma", "atmo", "dep" },
+            new[] { (IReadOnlyList<string>)new[] { "35", "50", "", "75" } }));
+        Assert.True(predictResult.IsSuccess, predictResult.Error?.TechnicalDetails);
+
+        var output = Path.Combine(_fx.ModelsDirectory, "mixed_ct.onnx");
+        var converted = await _fx.Models.ConvertAsync(new PythonConversionRequest(Model("mixed_ct.joblib"), output, true));
+        Assert.True(converted.IsSuccess, converted.Error?.Message + converted.Error?.TechnicalDetails);
+        Assert.True(converted.Value!.Validation.Performed);
+        Assert.True(converted.Value.Validation.Passed, converted.Value.Validation.Detail);
+
+        var loaded = await TestSetup.CreateLoader().LoadAsync(output);
+        Assert.True(loaded.IsSuccess, loaded.Error?.ToString());
+        var onnx = loaded.Value!;
+        Assert.Equal(4, onnx.Inputs.Count);
+
+        var sessions = new InferenceSessionManager(Options.Create(new OnnxStudioOptions()));
+        var inference = new InferenceService(sessions, Options.Create(new OnnxStudioOptions()), NullLogger<InferenceService>.Instance);
+        var run = await inference.RunAsync(onnx, new Dictionary<string, InferenceInputValue>
+        {
+            ["age"] = InferenceInputValue.Tensor(new[] { 35f }, new long[] { 1, 1 }),
+            ["vma"] = InferenceInputValue.Tensor(new[] { 50f }, new long[] { 1, 1 }),
+            ["atmo"] = new InferenceInputValue(new[] { "" }, new long[] { 1, 1 }),
+            ["dep"] = new InferenceInputValue(new[] { "75" }, new long[] { 1, 1 })
+        });
+        Assert.True(run.IsSuccess, run.Error?.TechnicalDetails);
     }
 }
